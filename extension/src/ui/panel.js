@@ -1,6 +1,6 @@
 // In-page management panel (Shadow DOM) shown on every NetSuite dashboard page.
 import { NsClient } from '../nsclient.js';
-import { parseDashboardDoc, listDashboardTabs, tabName, typeInfo, validatePackage, summarizePortlet, LAYOUTS } from '../model.js';
+import { parseDashboardDoc, listDashboardTabs, discoverDashboards, tabLabel, tabName, typeInfo, validatePackage, summarizePortlet, LAYOUTS } from '../model.js';
 import { captureDashboard, captureBundle } from '../capture.js';
 import { planImport, executePlan, describeStep, suggestBundleMapping } from '../apply.js';
 import { diffPackages, describeDiff } from '../diff.js';
@@ -37,6 +37,12 @@ class Panel {
 
   async mount() {
     this.settings = await getSettings().catch(() => this.settings);
+    // Include dashboards nested under menu categories (sub-tabs), not just top-level tab links.
+    discoverDashboards(this.client, document).then((tabs) => {
+      this.tabs = tabs;
+      this.dashboardName = tabName(this.dashboardId, this.tabs);
+      if (this.panel && !this.panel.hidden) this.render();
+    }).catch(() => {});
     const host = h('div', { id: 'ndm-host' });
     document.documentElement.appendChild(host);
     this.root = host.attachShadow({ mode: 'open' });
@@ -74,8 +80,9 @@ class Panel {
     views[this.activeTab]();
   }
 
+  /** One persistent log element for the whole session; re-renders move it, never recreate it. */
   logBox() {
-    if (!this.log || !this.log.isConnected) this.log = h('div', { class: 'ndm-log' });
+    if (!this.log) this.log = h('div', { class: 'ndm-log' });
     return this.log;
   }
   say(msg, cls = 'info') {
@@ -86,13 +93,17 @@ class Panel {
   clearLog() { if (this.log) this.log.replaceChildren(); }
 
   progressBar() {
-    this.bar = h('div', { class: 'ndm-progress' }, h('div'));
+    if (!this.bar) this.bar = h('div', { class: 'ndm-progress' }, h('div'));
     return this.bar;
   }
   setProgress(frac) { if (this.bar) this.bar.firstChild.style.width = `${Math.round(frac * 100)}%`; }
 
   async run(label, fn) {
-    try { await fn(); } catch (e) { console.error('[NDM]', e); this.say(`${label} failed: ${e && e.message || e}`, 'err'); }
+    try { await fn(); } catch (e) {
+      console.error('[NDM]', e);
+      const msg = e instanceof Error ? `${e.message}${e.stack ? `\n${String(e.stack).split('\n').slice(1, 3).join('\n')}` : ''}` : (e == null ? 'unknown error (null)' : typeof e === 'object' ? JSON.stringify(e).slice(0, 300) : String(e));
+      this.say(`${label} failed: ${msg}`, 'err');
+    }
   }
 
   // ---------------------------------------------------------------- Dashboard tab
@@ -101,7 +112,7 @@ class Panel {
     this.info = info;
     const byType = {};
     for (const p of info.portlets) byType[p.type] = (byType[p.type] || 0) + 1;
-    const targetSel = h('select', {}, ...this.tabs.filter((t) => t.id !== this.dashboardId).map((t) => h('option', { value: t.id }, `${t.name} (${t.id})`)));
+    const targetSel = h('select', {}, ...this.tabs.filter((t) => t.id !== this.dashboardId).map((t) => h('option', { value: t.id }, tabLabel(t))));
     const modeSel = h('select', {}, h('option', { value: 'merge' }, 'Merge: add to what is there'), h('option', { value: 'replace' }, 'Replace: remove existing portlets first'));
 
     this.body.replaceChildren(
@@ -119,7 +130,7 @@ class Panel {
           h('button', { class: 'ndm-btn secondary', type: 'button', onclick: () => this.run('Backup', () => this.backup('manual')) }, 'Backup now')),
         h('div', { class: 'ndm-row' },
           h('button', { class: 'ndm-btn secondary', type: 'button', onclick: () => this.run('Export all', () => this.exportAllTabs()) }, 'Export all tabs (bundle)'),
-          h('span', { class: 'ndm-muted' }, `${this.tabs.length} tabs visible to this role`))),
+          h('span', { class: 'ndm-muted' }, `${this.tabs.length} dashboards visible to this role (${this.tabs.filter((t) => t.path && t.path.includes(' › ')).length} under menu categories)`))),
       h('div', { class: 'ndm-section' },
         h('h2', {}, 'Copy this dashboard to another tab'),
         h('div', { class: 'ndm-row' }, targetSel, modeSel),
@@ -282,19 +293,23 @@ class Panel {
   // ---------------------------------------------------------------- Bundle wizard
   renderBundleWizard() {
     const b = this.bundle;
-    const tabOptions = () => [h('option', { value: '' }, '— skip —'), ...this.tabs.map((t) => h('option', { value: t.id }, `${t.name} (${t.id})`))];
+    const tabOptions = () => [h('option', { value: '' }, '— skip —'), ...this.tabs.map((t) => h('option', { value: t.id }, tabLabel(t)))];
     const invalidate = () => { b.plans = null; b.results = null; };
     const rows = b.mappings.map((m, i) => {
+      try { return renderRow(m, i); } catch (e) { console.error('[NDM] bundle row', e); return h('li', {}, h('span', { class: 'ndm-pill err' }, 'row error'), h('span', { class: 'ndm-muted' }, `${m.pkg?.source?.dashboardName || '?'}: ${e && e.message || e}`)); }
+    });
+    function renderRow(m, i) {
       const chk = h('input', { type: 'checkbox', checked: !!m.include, onchange: (e) => { m.include = e.target.checked; if (m.include && m.targetId == null) { m.targetId = this.dashboardId; m.reason = 'chosen: this tab'; } invalidate(); this.render(); } });
       const sel = h('select', { disabled: !m.include, onchange: (e) => { m.targetId = e.target.value === '' ? null : Number(e.target.value); m.include = m.targetId != null; m.reason = 'chosen'; invalidate(); this.render(); } }, ...tabOptions());
       sel.value = m.targetId == null ? '' : String(m.targetId);
       const plan = b.plans && b.plans[i];
       const res = b.results && b.results[i];
       const placeable = plan && !plan.error ? plan.summary.adds : null;
-      const verdict = !m.available ? h('span', { class: 'ndm-pill err' }, 'not available here')
-        : plan && !plan.error && placeable === 0 ? h('span', { class: 'ndm-pill warn' }, 'nothing to add')
-        : plan && !plan.error ? h('span', { class: 'ndm-pill ok' }, `${placeable} of ${m.pkg.dashboard.portlets.length} will import`)
-        : h('span', { class: 'ndm-pill ok' }, 'available');
+      const verdict = !m.available && !m.include ? h('span', { class: 'ndm-pill err' }, 'not available here')
+        : plan && plan.error ? h('span', { class: 'ndm-pill err' }, 'could not plan')
+        : plan && placeable === 0 ? h('span', { class: 'ndm-pill warn' }, b.mode === 'merge' ? 'nothing to add: all portlets already present (use Replace to overwrite)' : 'nothing to add')
+        : plan ? h('span', { class: 'ndm-pill ok' }, `${placeable} of ${m.pkg.dashboard.portlets.length} will import`)
+        : h('span', { class: 'ndm-pill ok' }, m.available ? 'available' : 'redirected');
       return h('li', { style: m.include ? '' : 'opacity:.6' },
         chk,
         h('div', { class: 'ndm-flex1' },
@@ -315,7 +330,7 @@ class Panel {
           res ? h('div', { class: 'ndm-row', style: 'margin-top:4px' },
             h('span', { class: `ndm-pill ${res.failed ? 'err' : 'ok'}` }, res.failed ? `${res.failed} failed` : 'done'),
             h('a', { href: `${location.origin}/app/center/card.nl?sc=${m.targetId}`, target: '_blank' }, 'open tab')) : null));
-    });
+    }
     const mapped = b.mappings.filter((m) => m.include && m.targetId != null);
     const dupTargets = mapped.map((m) => m.targetId).filter((id, i, a) => a.indexOf(id) !== i);
     const selectAvailable = () => { for (const m of b.mappings) { m.include = m.available; if (!m.available) m.targetId = null; } invalidate(); this.render(); };
@@ -329,11 +344,11 @@ class Panel {
         try {
           const plan = await planImport(this.client, m.pkg, m.targetId, { mode: b.mode, doc: document, applyLayout: b.applyLayout, fixOrder: b.fixOrder });
           b.plans.push(plan);
-        } catch (e) { b.plans.push({ error: `Could not plan: ${e.message}`, steps: [], warnings: [], summary: { adds: 0, settings: 0, hides: 0, skips: 0 } }); }
+        } catch (e) { console.error('[NDM] plan', e); b.plans.push({ error: `Could not plan: ${e && e.message || e}`, steps: [], warnings: [], summary: { adds: 0, settings: 0, hides: 0, skips: 0 } }); }
       }
-      // Deselect tabs where nothing would actually be added, so "Apply all" only touches useful targets.
-      b.mappings.forEach((m, i) => { const p = b.plans[i]; if (p && !p.error && p.summary.adds === 0 && p.summary.hides === 0) m.include = false; });
-      this.say('Bundle preview ready. Review the selection, then Apply selected.', 'ok');
+      const empty = b.mappings.filter((m, i) => { const p = b.plans[i]; return p && !p.error && p.summary.adds === 0 && p.summary.hides === 0; }).length;
+      const errs = b.plans.filter((p) => p && p.error).length;
+      this.say(`Bundle preview ready: ${b.plans.filter((p) => p && !p.error).length} tab(s) planned${empty ? `, ${empty} with nothing to add${b.mode === 'merge' ? ' (already present; choose Replace to overwrite)' : ''}` : ''}${errs ? `, ${errs} could not be planned` : ''}. Review, then Apply selected.`, errs ? 'skip' : 'ok');
       this.render();
     };
     const applyAll = async () => {
@@ -374,14 +389,16 @@ class Panel {
       h('div', { class: 'ndm-muted' }, `${b.mappings.length} dashboards exported from ${b.bundle.dashboards[0]?.source.host || 'another account'}. Tabs that exist in this account (same id or name) are pre-selected; tabs you do not have are unselected and can be redirected to another tab if you want their content.`),
       h('div', { class: 'ndm-row' },
         h('button', { class: 'ndm-btn secondary small', type: 'button', onclick: selectAvailable }, `Select all available (${b.mappings.filter((m) => m.available).length})`),
-        h('button', { class: 'ndm-btn secondary small', type: 'button', onclick: clearAll }, 'Clear')),
+        h('button', { class: 'ndm-btn secondary small', type: 'button', onclick: clearAll }, 'Clear'),
+        h('span', { class: 'ndm-muted' }, 'Mode'),
+        (() => { const s = h('select', { onchange: (e) => { b.mode = e.target.value; invalidate(); this.render(); } }, h('option', { value: 'merge' }, 'Merge: add to what is there'), h('option', { value: 'replace' }, 'Replace: remove existing portlets first')); s.value = b.mode; return s; })()),
       h('ul', { class: 'ndm-list' }, ...rows),
       dupTargets.length ? h('div', { class: 'ndm-warn' }, 'Two exported dashboards point at the same target tab; the second import will merge into the first (or fail on slot capacity).') : null,
       h('div', { class: 'ndm-row' },
         h('button', { class: 'ndm-btn', type: 'button', disabled: !mapped.length, onclick: () => this.run('Preview selected', previewAll) }, 'Preview selected'),
         h('button', { class: 'ndm-btn', type: 'button', disabled: !b.plans || !mapped.length, onclick: () => this.run('Apply selected', applyAll) }, 'Apply selected'),
         h('button', { class: 'ndm-btn secondary', type: 'button', onclick: () => { this.bundle = null; this.render(); } }, 'Discard'),
-        h('span', { class: 'ndm-muted' }, `Mode: ${b.mode} · ${mapped.length} of ${b.mappings.length} selected`)));
+        h('span', { class: 'ndm-muted' }, `${mapped.length} of ${b.mappings.length} selected`)));
   }
 
   renderPlan() {

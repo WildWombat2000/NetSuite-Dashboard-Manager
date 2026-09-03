@@ -16,7 +16,8 @@ using the same backend calls the dashboard UI itself makes when you personalise 
 | **Import** | Import tab | Recreates a package on the current user's dashboard: sets layout, allocates free portlet slots, replays each portlet's setup form, minimises, fixes ordering. Preview and dry-run before anything changes; automatic backup first |
 | **Copy to another tab** | Dashboard tab | Same flow, targeting another center tab of the same user (Home → "Sales", custom tab → custom tab) |
 | **Merge / Replace** | Import | Merge adds on top of what is there; Replace removes existing portlets first (Settings portlet is always kept) |
-| **All-tabs bundle import** | Import | Drop a bundle exported with "Export all tabs": each exported tab is pre-selected only if this account has a matching tab (same id, else same name); unavailable tabs are flagged and can be redirected or left out. Preview plans every selected tab, then one click imports them all in sequence with a backup per target |
+| **All-tabs bundle import** | Import | Drop a bundle exported with "Export all tabs": each exported tab is pre-selected only if this account has a matching tab (same id, else same name); unavailable tabs are flagged and can be redirected or left out. Preview plans every selected tab, then one click imports them all in sequence with a backup per target. Merge/Replace can be switched inside the wizard |
+| **Sub-tab dashboards** | everywhere | Dashboards that live under menu categories (for example *Aline Operations › Purchasing › Dashboard*) are discovered from NetSuite's navigation data, not just the top-level tab strip, so they can be exported, targeted and bundled like any tab |
 | **Rollback on rejected settings** | Import | If NetSuite rejects a portlet's configuration (missing search, no permission), the portlet is removed again instead of being left as an empty box, and its remaining steps are skipped |
 | **Backups & library** | Saved tab / Library page | Named snapshots stored in the browser (`chrome.storage.local`); restore, download, rename, delete |
 | **Compare** | Compare tab | Diff the live dashboard against a file or a saved snapshot: added/removed/moved portlets and changed settings |
@@ -101,6 +102,19 @@ docs/
   sdf-publisheddashboard-reference.md  complete SDF object/enumeration reference
   design.md                            architecture, decisions, risks, test plan
 ```
+
+## Developing without a NetSuite session
+
+`tests/ui-harness.html` stubs the extension APIs and, with `?sim=1`, a small in-page NetSuite
+simulator that answers every backend call the extension makes (dashboard pages, slot pools, setup
+forms, placement). Serve the repo root (`python -m http.server 8765`) and open
+
+```
+http://localhost:8765/tests/ui-harness.html?sim=1&demo=1&open=1&tab=import&bundle=1
+```
+
+to exercise the full bundle wizard, Preview, Dry run and Apply flows offline. `window.__sim` holds
+the simulated dashboards and the calls received.
 
 ## Safety model
 

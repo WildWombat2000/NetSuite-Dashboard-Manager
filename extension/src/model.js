@@ -148,6 +148,58 @@ export function listDashboardTabs(doc) {
   return [...seen.values()].sort((a, b) => (a.id === -29 ? -1 : b.id === -29 ? 1 : a.name.localeCompare(b.name)));
 }
 
+/**
+ * Dashboards reachable through the navigation menu data (`NLNavMenuData.nl`), including
+ * dashboards nested under menu categories ("sub-tabs" such as Purchasing › Dashboard) that are not
+ * rendered as top-level tab links. Returns [{id, name, path, parent}].
+ */
+export function dashboardsFromNavMenu(menuJson) {
+  const out = new Map();
+  const walk = (items, trail) => {
+    for (const it of items || []) {
+      const label = String(it.label || '').trim();
+      const m = /card\.nl\?(?:[^"'\s]*&)?sc=(-?\d+)/.exec(String(it.url || ''));
+      if (m) {
+        const id = Number(m[1]);
+        const path = [...trail, label].filter(Boolean).join(' › ');
+        const cur = out.get(id);
+        if (!cur || path.length < cur.path.length) out.set(id, { id, name: label || STANDARD_TABS[String(id)] || `Tab ${id}`, path, parent: trail[trail.length - 1] || null });
+      }
+      if (Array.isArray(it.submenu) && it.submenu.length) walk(it.submenu, [...trail, label]);
+    }
+  };
+  const rootItems = Array.isArray(menuJson) ? menuJson : (menuJson && (menuJson.menu || menuJson.items || menuJson.submenu)) || [];
+  walk(rootItems, []);
+  return [...out.values()];
+}
+
+/**
+ * Full dashboard inventory for the current role: top-level tabs from the page plus nested
+ * dashboards from the navigation menu. Never throws; falls back to the DOM list.
+ */
+export async function discoverDashboards(client, doc) {
+  const tabs = new Map(listDashboardTabs(doc).map((t) => [t.id, { ...t, path: t.name }]));
+  try {
+    const { res, text } = await client.fetchText('/app/center/NLNavMenuData.nl');
+    if (res.ok) {
+      let json = null;
+      try { json = JSON.parse(text); } catch (_) { const s = text.indexOf('['); const e = text.lastIndexOf(']'); if (s >= 0 && e > s) json = JSON.parse(text.slice(s, e + 1)); }
+      for (const d of dashboardsFromNavMenu(json)) {
+        const cur = tabs.get(d.id);
+        if (!cur) tabs.set(d.id, d);
+        else if (d.path && d.path.includes(' › ') && !cur.path.includes(' › ') && cur.name !== d.name) cur.path = d.path;
+        else if (!cur.name || /^Tab -?\d+$/.test(cur.name)) { cur.name = d.name; cur.path = d.path; }
+      }
+    }
+  } catch (_) { /* menu data unavailable: keep DOM tabs */ }
+  if (!tabs.has(-29)) tabs.set(-29, { id: -29, name: 'Home', path: 'Home' });
+  return [...tabs.values()].sort((a, b) => (a.id === -29 ? -1 : b.id === -29 ? 1 : (a.path || a.name).localeCompare(b.path || b.name)));
+}
+
+export function tabLabel(t) {
+  return t ? `${t.path || t.name} (${t.id})` : '';
+}
+
 export function tabName(id, tabs) {
   const t = (tabs || []).find((x) => Number(x.id) === Number(id));
   return t ? t.name : STANDARD_TABS[String(id)] || `Tab ${id}`;
@@ -160,7 +212,7 @@ export function newPackage({ source, dashboard, notes }) {
     format: PACKAGE_FORMAT,
     version: PACKAGE_VERSION,
     exportedAt: new Date().toISOString(),
-    generator: 'NetSuite Dashboard Manager 0.1.1',
+    generator: 'NetSuite Dashboard Manager 0.1.2',
     notes: notes || '',
     source,
     dashboard,

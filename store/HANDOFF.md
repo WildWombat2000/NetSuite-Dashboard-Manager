@@ -11,7 +11,7 @@ Repository root: `C:\Users\ReubenJoyceAline\Downloads\NetSuite Dashboard Manager
 
 | Purpose | Path |
 |---|---|
-| Extension package to upload | `dist\netsuite-dashboard-manager-0.1.1.zip` (rebuild with `python scripts\package.py` if missing) |
+| Extension package to upload | `dist\netsuite-dashboard-manager-0.1.2.zip` (rebuild with `python scripts\package.py` if missing) |
 | Store icon 128×128 | `store\icon\icon-128.png` |
 | Screenshots 1280×800 (upload in this order) | `store\screenshots\1-dashboard.png`, `store\screenshots\2-import.png`, `store\screenshots\3-admin.png`, `store\screenshots\4-compare.png`, `store\screenshots\5-bundle.png` |
 | Small promo tile 440×280 (optional) | `store\promo-440x280.png` |
@@ -31,8 +31,8 @@ Developer Agreement, stop and ask Reuben to do that step himself, then continue.
 
 ### 2.1 Create the item
 1. Developer Dashboard → **+ New item** (top right).
-2. Upload `dist\netsuite-dashboard-manager-0.1.1.zip`. Wait for "Package uploaded" and the manifest
-   summary (name "NetSuite Dashboard Manager", version 0.1.1). If the console reports a manifest
+2. Upload `dist\netsuite-dashboard-manager-0.1.2.zip`. Wait for "Package uploaded" and the manifest
+   summary (name "NetSuite Dashboard Manager", version 0.1.2). If the console reports a manifest
    error, copy the exact message back to Reuben; do not edit the zip.
 3. Click **Save draft** after each tab below.
 

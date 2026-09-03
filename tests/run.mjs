@@ -190,6 +190,21 @@ await test('executePlan can be told not to roll back', async () => {
   assert.ok(res.results.some((r) => r.step.kind === 'place' && r.ok), 'place still runs without rollback');
 });
 
+await test('dashboardsFromNavMenu finds nested dashboards under categories', async () => {
+  const { dashboardsFromNavMenu } = await import(src('model.js'));
+  const menu = [
+    { type: 'TAB', label: 'Home', url: '/app/center/card.nl?sc=-29', submenu: [] },
+    { type: 'TAB', label: 'Aline Operations', url: '/app/center/card.nl?sc=112', submenu: [
+      { type: 'CATEGORY', label: 'Purchasing', submenu: [{ type: 'TASK', label: 'Dashboard', url: 'https://x.app.netsuite.com/app/center/card.nl?sc=119&whence=', submenu: [] }, { type: 'TASK', label: 'Open POs', url: '/app/common/search/searchresults.nl?searchid=1', submenu: [] }] },
+      { type: 'CATEGORY', label: 'Warehouse', submenu: [{ type: 'TASK', label: 'Dashboard', url: '/app/center/card.nl?sc=114', submenu: [] }] },
+    ] },
+    { type: 'TAB', label: 'Reports', url: '/app/center/card.nl?sc=-9', submenu: [] },
+  ];
+  const d = dashboardsFromNavMenu(menu).sort((a, b) => a.id - b.id);
+  assert.deepEqual(d.map((x) => [x.id, x.path]), [[-29, 'Home'], [-9, 'Reports'], [112, 'Aline Operations'], [114, 'Aline Operations › Warehouse › Dashboard'], [119, 'Aline Operations › Purchasing › Dashboard']]);
+  assert.equal(d.find((x) => x.id === 119).parent, 'Purchasing');
+});
+
 await test('suggestBundleMapping matches by id, then name, else unavailable', async () => {
   const { suggestBundleMapping } = await import(src('apply.js'));
   const mk = (id, name) => ({ source: { dashboardId: id, dashboardName: name }, dashboard: { layout: 'TWO_COLUMN', portlets: [] } });

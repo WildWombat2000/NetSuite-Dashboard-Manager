@@ -54,6 +54,67 @@
   window.__errors = [];
   window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
   window.addEventListener('unhandledrejection', (e) => window.__errors.push(String(e.reason && e.reason.message || e.reason)));
+
+  // ---- Offline NetSuite simulator -------------------------------------------------------
+  // Intercepts the requests the extension makes so Preview / Dry run / Apply can be exercised
+  // end-to-end without a NetSuite session. Enabled with ?sim=1. State lives in window.__sim.
+  (function () {
+    const q = new URLSearchParams(location.search);
+    if (!q.get('sim')) return;
+    const SLOTS = { searchresults: [-60, -14050, -14051, -14052, -14053, -14054], trendgraph: [-7212, -7213, -7214, -7215, -7216], enhsnapshots: [-3900, -3901, -3902], scriptportlet: [-1200, -1201, -1202, -1203, -1204, -1205], snapshots: [-62], kpireport: [-7712], kpimeter: [-80, -81, -82], shortcuts: [-58], reminders: [-63], settings: [-52], calendar: [-56], list: [-59, -9029], quicksearch: [-51], searchform: [-9129], recentrecords: [-9329], lastlogin: [-32000] };
+    const CUSTOM_SLOTS = { searchresults: [1337, 1338, 1340, 1341], trendgraph: [1331, 1332, 1333, 1334, 1335], enhsnapshots: [1321, 1322, 1323], scriptportlet: [1336] };
+    const sim = window.__sim = { calls: [], dashboards: {
+      '-29': { layout: 'TWO_COLUMN_RIGHT', portlets: [{ id: -14050, type: 'searchresults', title: 'Purchasing Tracking Items', column: 1, order: 1 }, { id: -1200, type: 'scriptportlet', title: 'Sales Reports', column: 1, order: 2, state: 'minimized' }, { id: -52, type: 'settings', title: 'Settings', column: 1, order: 3, state: 'minimized' }, { id: -58, type: 'shortcuts', title: 'Shortcuts', column: 2, order: 1 }, { id: -63, type: 'reminders', title: 'Reminders', column: 2, order: 2 }] },
+      '124': { layout: 'TWO_COLUMN', portlets: [{ id: 1337, type: 'searchresults', title: 'EST Cases Open Summary', column: 1, order: 1 }] },
+      '86': { layout: 'TWO_COLUMN', portlets: [] },
+    } };
+    const slotsFor = (id) => Number(id) < 0 || id === '-29' ? SLOTS : (Number(id) > 0 ? CUSTOM_SLOTS : SLOTS);
+    const pageHtml = (id) => {
+      const d = sim.dashboards[String(id)] || { layout: 'TWO_COLUMN', portlets: [] };
+      const cols = d.layout === 'THREE_COLUMN' ? 3 : d.layout === 'SINGLE_COLUMN' ? 1 : 2;
+      const w = (p) => `<div class="ns-portlet-wrapper ns-portlet-window-state-${p.state || 'normal'}" data-portlet-type="${p.type}" data-portlet-id="${p.id}" data-portlet-locked="false" data-portlet-actions='{"close":"close","setup":{"name":"setup","args":["/app/center/setup/${p.type}.nl?portletid=${p.id}&amp;sectionid=${id}","x","1","1","x"]}}'><div class="ns-portlet-header"><h2 class="ns-portlet-header-text">${p.title}</h2></div></div>`;
+      const colHtml = Array.from({ length: cols }, (_, i) => `<div class="ns-dashboard-column" data-column-order="${i + 1}" data-column-type="wide">${d.portlets.filter((p) => p.column === i + 1).sort((a, b) => a.order - b.order).map(w).join('')}</div>`).join('');
+      return `<html><head><title>Tab ${id}</title></head><body><a href="/app/center/card.nl?sc=-29">Home</a><a href="/app/center/card.nl?sc=124">EST</a><a href="/app/center/card.nl?sc=86">Aline Reports</a><div class="ns-dashboard-layout-plugin-content"><span data-action="changeColumnLayout" data-action-args="${d.layout}"><img class="ns-selected"></span></div><div class="ns-dashboard-container" data-dashboard-identity='{"dashboardid":${id}}' data-dashboard-locked="false">${colHtml}</div></body></html>`;
+    };
+    const json = (o) => new Response(JSON.stringify({ status: 'ok', ...o }) + '\n<!-- sim -->', { status: 200, headers: { 'content-type': 'application/json' } });
+    const html = (s) => new Response(s, { status: 200, headers: { 'content-type': 'text/html' } });
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = new URL(typeof input === 'string' ? input : input.url, location.origin);
+      const method = (init.method || 'GET').toUpperCase();
+      const params = new URLSearchParams(url.search);
+      if (method === 'POST' && typeof init.body === 'string') new URLSearchParams(init.body).forEach((v, k) => params.set(k, v));
+      if (url.pathname === '/app/center/NLNavMenuData.nl') {
+        return html(JSON.stringify([{ type: 'TAB', id: 'HOME', label: 'Home', url: '/app/center/card.nl?sc=-29', submenu: [] }, { type: 'TAB', id: 'T1', label: 'Aline Operations', url: '/app/center/card.nl?sc=112', submenu: [{ type: 'CATEGORY', id: 'C1', label: 'Purchasing', submenu: [{ type: 'TASK', id: 'D1', label: 'Dashboard', url: 'https://x.app.netsuite.com/app/center/card.nl?sc=119&whence=', submenu: [] }] }, { type: 'CATEGORY', id: 'C2', label: 'Warehouse', submenu: [{ type: 'TASK', id: 'D2', label: 'Dashboard', url: '/app/center/card.nl?sc=114', submenu: [] }] }] }]));
+      }
+      if (url.pathname === '/app/center/card.nl') {
+        sim.calls.push({ method, params: Object.fromEntries(params) });
+        if (params.get('sc')) return html(pageHtml(params.get('sc')));
+        const dash = params.get('dashboardid'); const target = params.get('action-target'); const action = params.get('action');
+        const d = sim.dashboards[dash] = sim.dashboards[dash] || { layout: 'TWO_COLUMN', portlets: [] };
+        if (target === 'plugin' && action === 'get-available-portlets') return json({ portletData: { groups: [{ title: 'Standard Content', type: 'STANDARD_CONTENT', icon: '', items: Object.entries(slotsFor(dash)).flatMap(([t, ids]) => ids.map((id) => ({ id, typeName: t, columnPreference: 'WIDE', description: t, help: '', used: false }))) }] } });
+        if (target === 'plugin' && action === 'setLayout') { d.layout = params.get('layout'); return json({}); }
+        if (target === 'dashboard' && action === 'get-used-dash-apps') return json({ dashAppSlots: {} });
+        if (target === 'dashboard' && action === 'set-portlet-visibility') {
+          const id = Number(params.get('portletid'));
+          if (params.get('visible') === 'true') { if (!d.portlets.some((p) => p.id === id)) d.portlets.push({ id, type: Object.entries(slotsFor(dash)).find(([, ids]) => ids.includes(id))?.[0] || 'unknown', title: `Slot ${id}`, column: Number(params.get('column')), order: Number(params.get('order')) }); }
+          else d.portlets = d.portlets.filter((p) => p.id !== id);
+          return json({});
+        }
+        if (target === 'dashboard') return json({});
+        if (target === 'portlet' && action === 'load') { const id = Number(params.get('portletid')); const type = Object.entries(slotsFor(dash)).find(([, ids]) => ids.includes(id))?.[0] || 'searchresults'; return json({ portletid: String(id), wrapper: `<div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="${type}" data-portlet-id="${id}" data-portlet-actions='{"setup":{"name":"setup","args":["/app/center/setup/${type}.nl?portletid=${id}&amp;sectionid=${dash}","x","1","1","x"]}}'><div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Slot ${id}</h2></div></div>` }); }
+        if (target === 'portlet' && action === 'setup') return json({ selectedHeadlineItems: {}, selectedItems: { BILLSTOAPPROVE: {} }, allItems: { BILLSTOAPPROVE: { id: 'BILLSTOAPPROVE', value: 'Bills to Approve' } }, zeroResults: false });
+        return json({});
+      }
+      if (url.pathname.startsWith('/app/center/setup/')) {
+        sim.calls.push({ method, path: url.pathname, params: Object.fromEntries(params) });
+        if (method === 'POST') return html('<html><body><scr' + 'ipt>window.close()</scr' + 'ipt></body></html>');
+        const pid = params.get('portletid') || ''; const tok = Number(pid) < 0 ? 'neg' + Math.abs(Number(pid)) : pid;
+        return html(`<html><head><title>Setup</title></head><body><form name="main_form" method="post" action="${url.pathname}"><input type="submit" name="submitter" value="Save"><input type="hidden" name="_csrf" value="simtoken"><input type="hidden" name="_eml_nkey_" value="1~1~3~N"><input type="hidden" name="type" value="PortletSettings"><input type="hidden" name="sc" value="${params.get('sectionid') || ''}"><input type="hidden" name="portletid" value="${pid}"><input type="hidden" name="qelem" value="servercontent${tok}"><input type="hidden" name="submitted" value=""><input type="text" name="setting_SEARCHRESULTS_ID_${tok}" value=""><input type="text" name="setting_SEARCHRESULTS_SIZE_${tok}" value="10"><input type="checkbox" name="setting_SEARCHRESULTS_DLE_${tok}" value="T" checked><input type="hidden" name="setting_SEARCHRESULTS_DLE_${tok}_send" value="T"></form></body></html>`);
+      }
+      return realFetch(input, init);
+    };
+  })();
 </script>
 <script type="module">
   import { mount } from '/extension/src/ui/panel.js';
