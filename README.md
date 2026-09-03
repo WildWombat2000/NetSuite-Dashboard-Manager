@@ -51,7 +51,8 @@ saved-search access and role restrictions all still apply.
 
 | Portlet | Captured / replayed |
 |---|---|
-| Custom Search, List, Trend Graph, KPI (Key Performance Indicators), KPI Meter, KPI Scorecard, Report Snapshot, Custom Portlet, Shortcuts, Calendar, My Login Audit, Quick Search, Search Form, RSS, Quick Add | Full setup form replayed (all fields, including the multi-line "machine" data of KPI and Shortcuts) |
+| Custom Search, List, Trend Graph, KPI (Key Performance Indicators), KPI Meter, KPI Scorecard, Report Snapshot, Shortcuts, Calendar, My Login Audit, Quick Search, Search Form, RSS, Quick Add | Full setup form replayed (all fields, including the multi-line "machine" data of KPI and Shortcuts) |
+| Custom Portlet (portlet script) | Script selection replayed, then the script's **parameters form** (the "Edit" / Set Preferences popup, e.g. a budget date) replayed once the script is assigned |
 | Reminders | Selected headline/standard reminders and zero-result flag; per-reminder day thresholds and highlight rules are not exposed by NetSuite's JSON and must be redone |
 | SuiteApp "Dashboard App" portlets | Allocated via NetSuite's dashboard-app slot API using script/deployment ids |
 | Analytics (workbook) portlets | Placed, but configuration cannot be read from the UI: set the workbook by hand |

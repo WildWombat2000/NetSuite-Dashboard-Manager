@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NetSuite Dashboard Manager",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Copy, export, import, back up and compare NetSuite dashboards between users, tabs and accounts.",
   "homepage_url": "https://github.com/WildWombat2000/NetSuite-Dashboard-Manager",
   "minimum_chrome_version": "102",

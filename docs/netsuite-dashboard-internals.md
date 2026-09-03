@@ -125,7 +125,7 @@ save. Field names embed the slot token `neg<abs(id)>` (negative ids) or `<id>` (
 | `kpimeter` | `/app/center/setup/kpimetersetup.nl` | line machine `std*` (kpi key, range, period, highlight, compare) |
 | `kpireport` (Scorecard) | `/app/center/setup/kpireport.nl` | `setting_KPIREPORT_ID_`, `_RESTRICT_`, `_ORIENTATION_`, `_TREND_`, `_SHOWDATES_` |
 | `enhsnapshots` (Report Snapshot) | `/app/center/setup/enhsnapshots.nl?e=T&id&portletid&sectionid&qelem` | `enhancedsnapshot` (`ENHANCED:SALES_BY_REP`), `enhancedgraphlayout`, `enhanceddaterange`, `enhancedisgraph`, `enhancedorderbydesc`, `enhancedtopx`, `enhanceddefinition`, theme/background |
-| `scriptportlet` (Custom Portlet) | `/app/center/setup/scriptportletsetup.nl` | `scriptsource` = `<scripttype>_<script>` (e.g. `2436_1`), `scripttype`, `script`; parameters via `?scriptsettings=T` |
+| `scriptportlet` (Custom Portlet) | `/app/center/setup/scriptportletsetup.nl` | `scriptsource` = `<scripttype>_<script>` (e.g. `2436_1`), `scripttype`, `script`. Script parameters live in a second form at the same path with `?scriptsettings=T` (fields named `custscript_*`, plus hidden `scripttype`, `script`, `scriptsettings=T`); that form only exists once a script is assigned and its URL appears as the wrapper's `parameters` action |
 | `shortcuts` | `/app/center/setup/shortcuts.nl?sectionid&qelem` (no portletid) | line machine `shortcut*` (`shortcutdata`: seq, enable, label, url, newwindow) |
 | `calendar` | `/app/center/setup/eventsportletsetup.nl` | `setting_CALENDAR_SHOWEVENTS_`, `_SHOWTASKS_`, `_SHOWCALLS_`, `_DEFAULTAGENDALIMIT_`, `_MAXIMUMACTIVITIES_`, … |
 | `lastlogin` | `/app/center/setup/lastlogin.nl` | `setting_LASTLOGIN_SHOW*_` checkboxes |
@@ -145,6 +145,15 @@ names and values, set `sc`/`sectionid`/`portletid`/`qelem` for the target, take 
 
 Checkboxes post `name=T` when checked plus a companion `<name>_send` hidden field (`T` when checked,
 empty otherwise) that NetSuite uses to detect an unchecked box. Keep both.
+
+Two behaviours of slots matter for import ordering:
+
+* A slot keeps its configuration when hidden (a hidden custom-portlet slot still had "3CX Dashboard"
+  assigned), so `get-available-portlets` "free" slots may carry stale settings; always replay settings
+  after showing a slot rather than assuming it is blank.
+* The setup and parameters forms of a **hidden** slot answer HTTP 500 "Notice: You do not have
+  permission to perform this operation". Make the slot visible (`set-portlet-visibility`) before
+  fetching or posting its forms; this is why the import engine shows first and configures second.
 
 ## 5. Publishing (admin only)
 

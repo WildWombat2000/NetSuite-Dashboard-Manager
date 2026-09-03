@@ -163,7 +163,7 @@ export async function captureSettings(client, dashboardId, p) {
     if (/^inpt_|_display$|_formattedValue$/.test(nName)) display[nName] = nValue;
   }
   const typeField = form.entries.find(([k]) => k === 'type');
-  return {
+  const out = {
     kind: 'form',
     formAction: form.action.replace(/^https?:\/\/[^/]+/, ''),
     formType: typeField ? typeField[1] : null,
@@ -172,6 +172,19 @@ export async function captureSettings(client, dashboardId, p) {
     display,
     refs: extractRefs(p.type, entries, display),
   };
+  // Custom (script) portlets have a second form for script parameters (…?scriptsettings=T).
+  if (p.parametersUrl) {
+    try {
+      const pf = await client.fetchForm(p.parametersUrl);
+      out.paramEntries = pf.entries
+        .filter(([name]) => !VOLATILE_FIELD.test(name) && !/^(scripttype|script|scriptsettings|scriptsource|inpt_scriptsource)$/.test(name))
+        .map(([name, value]) => [normalizeToken(name, token), normalizeToken(value, token)]);
+      out.refs.parameterCount = out.paramEntries.length;
+    } catch (e) {
+      out.paramError = String(e && e.message || e);
+    }
+  }
+  return out;
 }
 
 async function captureReminders(client, dashboardId, p) {

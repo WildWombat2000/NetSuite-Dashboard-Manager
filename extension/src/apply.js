@@ -110,7 +110,7 @@ export async function planImport(client, pkg, targetDashboardId, opts = {}) {
 
     const s = p.settings || { kind: 'none' };
     if (s.kind === 'form' && Array.isArray(s.entries) && s.entries.length) {
-      steps.push({ kind: 'settings', srcKey: p.key, type: p.type, title: p.title, entries: s.entries, formAction: s.formAction });
+      steps.push({ kind: 'settings', srcKey: p.key, type: p.type, title: p.title, entries: s.entries, formAction: s.formAction, paramEntries: Array.isArray(s.paramEntries) && s.paramEntries.length ? s.paramEntries : null });
     } else if (s.kind === 'reminders') {
       steps.push({ kind: 'reminders', srcKey: p.key, type: p.type, title: p.title, headlineItems: s.headlineItems || [], standardItems: s.standardItems || [], zeroResults: !!s.zeroResults });
     } else if (s.kind === 'manual') {
@@ -224,7 +224,7 @@ export function describeStep(step, ids = {}) {
     case 'hide': return `Remove "${step.title}" (${step.type} ${step.portletId})`;
     case 'show': return `Add "${step.title}" as ${step.type} slot ${step.portletId} in column ${step.column}, position ${step.order}`;
     case 'app': return `Add SuiteApp portlet "${step.title}" (script ${step.scriptId}/${step.deploymentId}) in column ${step.column}, position ${step.order}`;
-    case 'settings': return `Configure "${step.title}" (${step.entries.length} form fields → slot ${id ?? '?'})`;
+    case 'settings': return `Configure "${step.title}" (${step.entries.length} form fields${step.paramEntries ? ` + ${step.paramEntries.length} script parameter(s)` : ''} → slot ${id ?? '?'})`;
     case 'reminders': return `Configure reminders: ${step.headlineItems.length} headline + ${step.standardItems.length} standard`;
     case 'minimize': return `Minimise "${step.title}"`;
     case 'place': return `Place "${step.title}" at column ${step.column}, position ${step.order}`;
@@ -302,7 +302,26 @@ async function applySettings(client, dash, portletId, step) {
   const text = await client.postForm(form.action, merged);
   const err = detectFormError(text);
   if (err) throw new NsError(`NetSuite rejected the settings: ${err}`);
-  return `Applied ${step.entries.length} settings to slot ${portletId}`;
+  let msg = `Applied ${step.entries.length} settings to slot ${portletId}`;
+
+  // Script parameters (custom portlets): the parameters form only exists once a script is
+  // assigned, so reload the wrapper now and replay the captured parameter values.
+  if (step.paramEntries && step.paramEntries.length) {
+    const reloaded = await client.loadPortlet(dash, portletId);
+    const d2 = document.createElement('div');
+    d2.innerHTML = reloaded.wrapper || '';
+    const w2 = d2.querySelector('.ns-portlet-wrapper');
+    const info2 = w2 ? parsePortletWrapper(w2) : null;
+    const paramsUrl = info2 && info2.parametersUrl;
+    if (!paramsUrl) throw new NsError(`Settings applied, but slot ${portletId} exposes no script-parameters form; ${step.paramEntries.length} parameter(s) not applied`);
+    const pf = await client.fetchForm(paramsUrl);
+    const pm = mergeFormEntries(pf.entries, step.paramEntries, token);
+    const ptext = await client.postForm(pf.action, pm);
+    const perr = detectFormError(ptext);
+    if (perr) throw new NsError(`Settings applied, but NetSuite rejected the script parameters: ${perr}`);
+    msg += ` + ${step.paramEntries.length} script parameter(s)`;
+  }
+  return msg;
 }
 
 /**

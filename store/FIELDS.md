@@ -20,8 +20,8 @@ Files referenced are relative to the repo root `C:\Users\ReubenJoyceAline\Downlo
 
 | Field | Value |
 |---|---|
-| Upload new package | `dist\netsuite-dashboard-manager-0.1.2.zip` |
-| (read-only after upload) Name / Version | NetSuite Dashboard Manager / 0.1.2 |
+| Upload new package | `dist\netsuite-dashboard-manager-0.1.3.zip` |
+| (read-only after upload) Name / Version | NetSuite Dashboard Manager / 0.1.3 |
 
 ---
 

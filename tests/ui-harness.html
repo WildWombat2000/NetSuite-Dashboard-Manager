@@ -102,14 +102,24 @@
           return json({});
         }
         if (target === 'dashboard') return json({});
-        if (target === 'portlet' && action === 'load') { const id = Number(params.get('portletid')); const type = Object.entries(slotsFor(dash)).find(([, ids]) => ids.includes(id))?.[0] || 'searchresults'; return json({ portletid: String(id), wrapper: `<div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="${type}" data-portlet-id="${id}" data-portlet-actions='{"setup":{"name":"setup","args":["/app/center/setup/${type}.nl?portletid=${id}&amp;sectionid=${dash}","x","1","1","x"]}}'><div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Slot ${id}</h2></div></div>` }); }
+        if (target === 'portlet' && action === 'load') {
+          const id = Number(params.get('portletid')); const type = Object.entries(slotsFor(dash)).find(([, ids]) => ids.includes(id))?.[0] || 'searchresults';
+          const hasScript = type === 'scriptportlet' && sim.scriptAssigned && sim.scriptAssigned[dash + ':' + id];
+          const paramsAction = hasScript ? `,"parameters":{"name":"openPopup","args":["/app/center/setup/scriptportletsetup.nl?scriptsettings=T&amp;portletid=${id}&amp;sectionid=${dash}","x","1","1","x"]}` : '';
+          return json({ portletid: String(id), wrapper: `<div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="${type}" data-portlet-id="${id}" data-portlet-actions='{"setup":{"name":"setup","args":["/app/center/setup/${type === 'scriptportlet' ? 'scriptportletsetup' : type}.nl?portletid=${id}&amp;sectionid=${dash}","x","1","1","x"]}${paramsAction}}'><div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Slot ${id}</h2></div></div>` });
+        }
         if (target === 'portlet' && action === 'setup') return json({ selectedHeadlineItems: {}, selectedItems: { BILLSTOAPPROVE: {} }, allItems: { BILLSTOAPPROVE: { id: 'BILLSTOAPPROVE', value: 'Bills to Approve' } }, zeroResults: false });
         return json({});
       }
       if (url.pathname.startsWith('/app/center/setup/')) {
         sim.calls.push({ method, path: url.pathname, params: Object.fromEntries(params) });
-        if (method === 'POST') return html('<html><body><scr' + 'ipt>window.close()</scr' + 'ipt></body></html>');
+        if (method === 'POST') {
+          if (url.pathname.endsWith('scriptportletsetup.nl') && params.get('scriptsource')) { sim.scriptAssigned = sim.scriptAssigned || {}; sim.scriptAssigned[(params.get('sc') || '') + ':' + params.get('portletid')] = params.get('scriptsource'); }
+          if (params.get('scriptsettings') === 'T') { sim.paramPosts = (sim.paramPosts || []).concat([Object.fromEntries(params)]); }
+          return html('<html><body><scr' + 'ipt>window.close()</scr' + 'ipt></body></html>');
+        }
         const pid = params.get('portletid') || ''; const tok = Number(pid) < 0 ? 'neg' + Math.abs(Number(pid)) : pid;
+        if (params.get('scriptsettings') === 'T') return html(`<html><head><title>Set Preferences</title></head><body><form name="main_form" method="post" action="${url.pathname}"><input type="submit" name="submitter" value="Save"><input type="hidden" name="_csrf" value="simtoken"><input type="hidden" name="type" value="portletsettings"><input type="hidden" name="sc" value="${params.get('sectionid') || ''}"><input type="hidden" name="portletid" value="${pid}"><input type="hidden" name="qelem" value="servercontent${tok}"><input type="hidden" name="scripttype" value="2436"><input type="hidden" name="script" value="1"><input type="hidden" name="scriptsettings" value="T"><input type="hidden" name="submitted" value=""><input type="text" name="custscript_tvn_reporting_budget_date" value=""></form></body></html>`);
         return html(`<html><head><title>Setup</title></head><body><form name="main_form" method="post" action="${url.pathname}"><input type="submit" name="submitter" value="Save"><input type="hidden" name="_csrf" value="simtoken"><input type="hidden" name="_eml_nkey_" value="1~1~3~N"><input type="hidden" name="type" value="PortletSettings"><input type="hidden" name="sc" value="${params.get('sectionid') || ''}"><input type="hidden" name="portletid" value="${pid}"><input type="hidden" name="qelem" value="servercontent${tok}"><input type="hidden" name="submitted" value=""><input type="text" name="setting_SEARCHRESULTS_ID_${tok}" value=""><input type="text" name="setting_SEARCHRESULTS_SIZE_${tok}" value="10"><input type="checkbox" name="setting_SEARCHRESULTS_DLE_${tok}" value="T" checked><input type="hidden" name="setting_SEARCHRESULTS_DLE_${tok}_send" value="T"></form></body></html>`);
       }
       return realFetch(input, init);

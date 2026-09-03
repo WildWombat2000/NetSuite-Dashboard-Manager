@@ -179,6 +179,52 @@ await test('planImport allocates slots, reports capacity, keeps Settings, applie
   assert.ok(res.removed.length === failedSettings.length);
 });
 
+await test('custom portlet: settings then script parameters are posted, slot tokens rewritten', async () => {
+  const { client, parsed, targetDoc } = stubTarget({ layout: 'TWO_COLUMN_RIGHT', displayed: [], slots: { scriptportlet: [-1203] } });
+  const posts = [];
+  let assigned = false;
+  client.loadPortlet = async (d, id) => ({ wrapper: `<div class="ns-portlet-wrapper" data-portlet-type="scriptportlet" data-portlet-id="${id}" data-portlet-actions='{"setup":{"name":"setup","args":["/app/center/setup/scriptportletsetup.nl?portletid=${id}&sectionid=124"]}${assigned ? `,"parameters":{"name":"openPopup","args":["/app/center/setup/scriptportletsetup.nl?scriptsettings=T&portletid=${id}&sectionid=124"]}` : ''}}'></div>` });
+  client.fetchForm = async (url) => {
+    const isParams = /scriptsettings=T/.test(url);
+    return { action: '/app/center/setup/scriptportletsetup.nl', method: 'POST', title: 'x', entries: isParams
+      ? [['_csrf', 'fresh'], ['type', 'portletsettings'], ['sc', '124'], ['portletid', '-1203'], ['qelem', 'servercontentneg1203'], ['scripttype', '2436'], ['script', '1'], ['scriptsettings', 'T'], ['submitted', ''], ['custscript_tvn_reporting_budget_date', ''], ['custscript_tvn_reporting_show_detail_send', '']]
+      : [['_csrf', 'fresh'], ['type', 'portletsettings'], ['sc', '124'], ['portletid', '-1203'], ['qelem', 'servercontentneg1203'], ['inpt_scriptsource', ''], ['scriptsource', ''], ['submitted', '']] };
+  };
+  client.postForm = async (action, entries) => { posts.push(new Map(entries)); if (entries.some(([k, v]) => k === 'scriptsource' && v)) assigned = true; return '<html><body></body></html>'; };
+  // Wrapper parsing in apply.js uses document.createElement + querySelector; give the stub a tiny HTML parser.
+  const realCreate = globalThis.document.createElement;
+  globalThis.document.createElement = () => {
+    const el = { set innerHTML(v) { this._h = v; }, querySelector() {
+      const m = /data-portlet-actions='([^']*)'/.exec(this._h || '');
+      if (!m) return null;
+      const actions = m[1];
+      return { getAttribute: (k) => k === 'data-portlet-actions' ? actions : k === 'data-portlet-id' ? '-1203' : k === 'data-portlet-type' ? 'scriptportlet' : null, className: 'ns-portlet-wrapper', querySelector: () => null };
+    } };
+    return el;
+  };
+  try {
+    const applyMod = await import(src('apply.js'));
+    const one = { ...fixture, dashboard: { ...fixture.dashboard, portlets: [fixture.dashboard.portlets.find((p) => p.key === 'p6')] } };
+    const plan = await planWithStub(applyMod, client, one, 124, { mode: 'merge', doc: targetDoc, parsed });
+    const settingsStep = plan.steps.find((s) => s.kind === 'settings');
+    assert.equal(settingsStep.paramEntries.length, 3);
+    assert.match(describeStep(settingsStep), /3 script parameter/);
+    const res = await executePlan(client, plan, { pauseMs: 0 });
+    const failed = res.results.filter((r) => !r.ok);
+    assert.equal(failed.length, 0, JSON.stringify(failed.map((r) => r.message)));
+    assert.equal(posts.length, 2, 'setup POST then parameters POST');
+    assert.equal(posts[0].get('scriptsource'), '2436_1');
+    assert.equal(posts[0].get('scripttype'), '2436');
+    assert.equal(posts[1].get('custscript_tvn_reporting_budget_date'), '01/08/2026');
+    assert.equal(posts[1].get('custscript_tvn_reporting_show_detail'), 'T');
+    assert.equal(posts[1].get('scriptsettings'), 'T');
+    assert.equal(posts[1].get('portletid'), '-1203');
+    assert.equal(posts[1].get('submitted'), 'T');
+  } finally {
+    globalThis.document.createElement = realCreate;
+  }
+});
+
 await test('executePlan can be told not to roll back', async () => {
   const { client, parsed, targetDoc } = stubTarget({ layout: 'TWO_COLUMN_RIGHT', displayed: [], slots: { searchresults: [1337] } });
   client.loadPortlet = async () => ({ wrapper: '' });
