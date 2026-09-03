@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "NetSuite Dashboard Manager",
+  "version": "0.1.0",
+  "description": "Copy, export, import, back up and compare NetSuite dashboards between users, tabs and accounts.",
+  "homepage_url": "https://github.com/WildWombat2000/NetSuite-Dashboard-Manager",
+  "minimum_chrome_version": "102",
+  "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://*.netsuite.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "NetSuite Dashboard Manager",
+    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*.netsuite.com/app/center/card.nl*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["src/*"], "matches": ["https://*.netsuite.com/*"] }
+  ]
+}

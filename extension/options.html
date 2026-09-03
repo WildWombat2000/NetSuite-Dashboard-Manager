@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NetSuite Dashboard Manager – Library</title>
+<style>
+  body { font: 14px/1.5 "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; background: #f7f9fc; color: #1d2733; }
+  header { background: #1f5a9b; color: #fff; padding: 16px 24px; }
+  header h1 { margin: 0; font-size: 18px; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 24px; }
+  section { background: #fff; border: 1px solid #dfe6ee; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #4a5a6a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid #eef2f6; vertical-align: top; }
+  th { color: #66768a; font-weight: 600; border-top: 0; }
+  button, .btn { font: inherit; font-size: 12.5px; font-weight: 600; border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; background: #1f5a9b; color: #fff; margin: 2px 2px 2px 0; }
+  button.secondary { background: #e8eef5; color: #1f3d5c; }
+  button.danger { background: #b23b3b; }
+  input[type=text], select { font: inherit; padding: 6px 8px; border: 1px solid #b9c5d3; border-radius: 6px; }
+  pre { background: #0f1a26; color: #d5e2f0; padding: 12px; border-radius: 8px; overflow: auto; max-height: 420px; font-size: 12px; }
+  .muted { color: #66768a; font-size: 12.5px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<header><h1>NetSuite Dashboard Manager – saved dashboards</h1></header>
+<main>
+  <section>
+    <h2>Library</h2>
+    <div class="row">
+      <input type="file" id="importFile" accept=".json,application/json">
+      <button id="importBtn" class="secondary">Add file to library</button>
+      <span class="muted">Packages exported by colleagues can be stored here and imported from any dashboard page.</span>
+    </div>
+    <table id="libTable"><thead><tr><th>Name</th><th>Kind</th><th>Source</th><th>Portlets</th><th>Saved</th><th></th></tr></thead><tbody></tbody></table>
+  </section>
+  <section>
+    <h2>Inspect</h2>
+    <div id="inspect" class="muted">Select "Inspect" on a saved dashboard to see its portlets and settings.</div>
+  </section>
+  <section>
+    <h2>Compare two saved dashboards</h2>
+    <div class="row"><select id="cmpA"></select> → <select id="cmpB"></select> <button id="cmpBtn">Compare</button></div>
+    <pre id="cmpOut" hidden></pre>
+  </section>
+  <section>
+    <h2>SDF XML from a saved dashboard</h2>
+    <div class="row">
+      <select id="sdfPkg"></select>
+      <input type="text" id="sdfName" placeholder="Name (max 30)" maxlength="30">
+      <input type="text" id="sdfScriptId" placeholder="custpubdashboard_x">
+      <select id="sdfCenter"></select>
+      <input type="text" id="sdfRoles" placeholder="Roles: ACCOUNTANT, customrole_x">
+      <button id="sdfBtn">Generate</button>
+    </div>
+    <p class="muted">Script ids cannot be looked up from this page; unresolved references are emitted as TODO comments. Generate from the in-page panel (Admin tab) while logged in to resolve them automatically.</p>
+    <pre id="sdfOut" hidden></pre>
+  </section>
+  <section>
+    <h2>How to use</h2>
+    <ol>
+      <li>Open a NetSuite dashboard (Home or any center tab) and click <b>Dashboard Manager</b> at the bottom right.</li>
+      <li><b>Export to file</b> captures layout, portlets and every portlet's settings into a <code>.nsdash.json</code> file you can send to a colleague.</li>
+      <li>The colleague opens their own dashboard, picks the file in the <b>Import</b> tab, previews the plan and clicks <b>Apply</b>. A backup of their previous dashboard is stored here first.</li>
+      <li>Administrators can also generate an SDF <code>publisheddashboard</code> object or use NetSuite's native <b>Publish Dashboard</b> to push to whole roles.</li>
+    </ol>
+  </section>
+</main>
+<script type="module" src="options.js"></script>
+</body>
+</html>

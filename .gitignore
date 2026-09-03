@@ -1,0 +1,10 @@
+dist/
+node_modules/
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+# real captured dashboards must never be committed (they contain account data)
+*.nsdash.json
+!tests/fixtures/*.nsdash.json
+*.nsdash-bundle.json

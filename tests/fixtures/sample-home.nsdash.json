@@ -1,0 +1,136 @@
+{
+  "format": "netsuite-dashboard-package",
+  "version": 1,
+  "exportedAt": "2026-09-03T04:33:48.042Z",
+  "generator": "NetSuite Dashboard Manager 0.1.0",
+  "notes": "Synthetic fixture modelled on a real 2026.2 Home dashboard capture (ids are illustrative).",
+  "source": { "accountId": "1234567", "host": "1234567.app.netsuite.com", "dashboardId": -29, "dashboardName": "Home", "dashboardType": "HOME", "roleId": "3", "entityId": "42" },
+  "dashboard": {
+    "layout": "TWO_COLUMN_RIGHT",
+    "columns": [ { "order": 1, "width": "WIDE", "id": "dashboard-column-1" }, { "order": 2, "width": "NARROW", "id": "dashboard-column-2" } ],
+    "locked": false,
+    "portlets": [
+      {
+        "key": "p1", "slotId": -14050, "type": "searchresults", "typeLabel": "Custom Search", "title": "Purchasing Tracking Items",
+        "column": 1, "order": 1, "state": "normal", "locked": false, "portletClass": "SearchResultPortlet",
+        "setupUrl": "/app/center/setup/customsearch.nl?portletid=-14050&sectionid=-29&qelem=servercontentneg14050", "editUrl": null, "app": null,
+        "settings": {
+          "kind": "form", "formAction": "/app/center/setup/customsearch.nl", "formType": "PortletSettings", "formTitle": "Custom Search Setup",
+          "entries": [
+            ["setting_SEARCHRESULTS_ID_{{SLOT}}_display", "Purchasing Tracking Items"], ["setting_SEARCHRESULTS_ID_{{SLOT}}", "6532"],
+            ["setting_SEARCHRESULTS_CUSTOM_TITLE_{{SLOT}}", ""],
+            ["setting_SEARCHRESULTS_SIZE_{{SLOT}}_formattedValue", "20"], ["setting_SEARCHRESULTS_SIZE_{{SLOT}}", "20"],
+            ["inpt_setting_SEARCHRESULTS_DD_{{SLOT}}", "To New Page"], ["setting_SEARCHRESULTS_DD_{{SLOT}}", "NEWPAGE"],
+            ["setting_SEARCHRESULTS_DLE_{{SLOT}}", "T"], ["setting_SEARCHRESULTS_DLE_{{SLOT}}_send", "T"],
+            ["inpt_setting_SEARCHRESULTS_CHARTTHEME_{{SLOT}}", "Global Theme"], ["setting_SEARCHRESULTS_CHARTTHEME_{{SLOT}}", "searchresults_global_theme"],
+            ["inpt_setting_SEARCHRESULTS_BACKGROUND_TYPE_{{SLOT}}", "Global Background"], ["setting_SEARCHRESULTS_BACKGROUND_TYPE_{{SLOT}}", "searchresults_global_background"]
+          ],
+          "display": { "setting_SEARCHRESULTS_ID_{{SLOT}}_display": "Purchasing Tracking Items" },
+          "refs": { "savedSearchId": "6532", "savedSearchName": "Purchasing Tracking Items", "customTitle": "", "size": "20" }
+        }
+      },
+      {
+        "key": "p2", "slotId": -14053, "type": "searchresults", "typeLabel": "Custom Search", "title": "SOH Value by Item Category",
+        "column": 1, "order": 2, "state": "normal", "locked": false, "portletClass": "SearchResultPortlet", "setupUrl": "/app/center/setup/customsearch.nl?portletid=-14053&sectionid=-29&qelem=servercontentneg14053", "editUrl": null, "app": null,
+        "settings": {
+          "kind": "form", "formAction": "/app/center/setup/customsearch.nl", "formType": "PortletSettings",
+          "entries": [
+            ["setting_SEARCHRESULTS_ID_{{SLOT}}_display", "SOH Value by Item Category"], ["setting_SEARCHRESULTS_ID_{{SLOT}}", "5151"],
+            ["setting_SEARCHRESULTS_CUSTOM_TITLE_{{SLOT}}", "Stock on hand"],
+            ["setting_SEARCHRESULTS_SIZE_{{SLOT}}", "20"], ["setting_SEARCHRESULTS_DD_{{SLOT}}", "NEWPAGE"],
+            ["setting_SEARCHRESULTS_DLE_{{SLOT}}_send", ""],
+            ["setting_SEARCHRESULTS_CHARTTHEME_{{SLOT}}", "searchresults_colorful"], ["setting_SEARCHRESULTS_BACKGROUND_TYPE_{{SLOT}}", "searchresults_grid"]
+          ],
+          "display": {}, "refs": { "savedSearchId": "5151", "savedSearchName": "SOH Value by Item Category", "customTitle": "Stock on hand", "size": "20" }
+        }
+      },
+      {
+        "key": "p3", "slotId": -14051, "type": "searchresults", "typeLabel": "Custom Search", "title": "Inventory Movements",
+        "column": 1, "order": 3, "state": "minimized", "locked": false, "portletClass": "SearchResultPortlet", "setupUrl": "/app/center/setup/customsearch.nl?portletid=-14051&sectionid=-29&qelem=servercontentneg14051", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/customsearch.nl", "formType": "PortletSettings",
+          "entries": [ ["setting_SEARCHRESULTS_ID_{{SLOT}}", "3143"], ["setting_SEARCHRESULTS_SIZE_{{SLOT}}", "100"], ["setting_SEARCHRESULTS_DD_{{SLOT}}", "NEWPAGE"] ],
+          "display": {}, "refs": { "savedSearchId": "3143", "size": "100" } }
+      },
+      {
+        "key": "p4", "slotId": -7712, "type": "kpireport", "typeLabel": "KPI Scorecard", "title": "Stock Checks",
+        "column": 1, "order": 4, "state": "normal", "locked": false, "portletClass": "Portlet", "setupUrl": "/app/center/setup/kpireport.nl?portletid=-7712&sectionid=-29&qelem=servercontentneg7712", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/kpireport.nl", "formType": "PortletSettings",
+          "entries": [ ["inpt_setting_KPIREPORT_ID_{{SLOT}}", "Stock Checks"], ["setting_KPIREPORT_ID_{{SLOT}}", "26"], ["inpt_setting_KPIREPORT_RESTRICT_{{SLOT}}", "All"], ["setting_KPIREPORT_RESTRICT_{{SLOT}}", "F"], ["inpt_setting_KPIREPORT_ORIENTATION_{{SLOT}}", "KPIs on Left"], ["setting_KPIREPORT_ORIENTATION_{{SLOT}}", "KPISONLEFT"], ["setting_KPIREPORT_TREND_{{SLOT}}", "T"], ["setting_KPIREPORT_TREND_{{SLOT}}_send", "T"], ["setting_KPIREPORT_SHOWDATES_{{SLOT}}_send", ""] ],
+          "display": { "inpt_setting_KPIREPORT_ID_{{SLOT}}": "Stock Checks", "inpt_setting_KPIREPORT_RESTRICT_{{SLOT}}": "All", "inpt_setting_KPIREPORT_ORIENTATION_{{SLOT}}": "KPIs on Left" },
+          "refs": { "scorecardId": "26", "scorecardName": "Stock Checks" } }
+      },
+      {
+        "key": "p5", "slotId": -62, "type": "snapshots", "typeLabel": "Key Performance Indicators", "title": "Key Performance Indicators",
+        "column": 1, "order": 5, "state": "normal", "locked": false, "portletClass": "KPIPortlet", "setupUrl": "/app/center/setup/snapshots.nl?kpigrp=KPI&sectionid=-29&portletid=-62&qelem=servercontentneg62", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/snapshots.nl", "formType": "portletsettings",
+          "entries": [
+            ["stdKPI", ""], ["custKPI_display", ""], ["custKPI", ""], ["custKPI_labels", ""], ["kpigrp", "KPI"], ["project", "-1"],
+            ["stdfields", "stdactive\u0001stdname\u0001stdkey\u0001bCustom\u0001stddaterange\u0001stddaterange_visible\u0001stdperiod\u0001stdperiod_visible\u0001stdhighlightoption\u0001stdhighlightmarker\u0001stdheadline\u0001stdcompare\u0001stdcompare_visible\u0001stdcomparedaterange\u0001stdcomparedaterange_visible\u0001stdcompareperiod\u0001stdcompareperiod_visible\u0001stdasof\u0001stdforecastperiods\u0001stdsavedsearch\u0001stddaterangenames"],
+            ["stdflags", "0\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010\u00010"],
+            ["stdtypes", "text\u0001text\u0001text\u0001text\u0001select\u0001text\u0001select\u0001text\u0001select\u0001currency\u0001checkbox\u0001checkbox\u0001text\u0001select\u0001text\u0001select\u0001text\u0001text\u0001text\u0001text\u0001select"],
+            ["stddata", "T\u0001Built Stock Valuation\u0001CUSTOM\u0001T\u0001TODAY\u0001T\u0001TP\u0001F\u0001GT\u00012000000.00\u0001F\u0001T\u0001T\u0001LM\u0001T\u0001LP\u0001F\u0001F\u0001F\u00011768\u0001TODAY\u0002T\u0001Sales\u0001SALES\u0001F\u0001TM\u0001T\u0001TP\u0001F\u0001\u0001\u0001F\u0001T\u0001T\u0001LMTD\u0001T\u0001LP\u0001F\u0001F\u0001F\u0001\u0001TM\u0002T\u0001Orders\u0001ORDERS\u0001F\u0001TW\u0001T\u0001\u0001F\u0001\u0001\u0001T\u0001F\u0001T\u0001\u0001T\u0001\u0001F\u0001F\u0001F\u0001\u0001TW"],
+            ["nextstdidx", "4"], ["stdvalid", "T"], ["cacheEnable", "T"]
+          ],
+          "display": {}, "refs": { "kpiCount": 3, "kpis": "Built Stock Valuation, Sales, Orders", "customKpiIds": [] } }
+      },
+      {
+        "key": "p6", "slotId": -1201, "type": "scriptportlet", "typeLabel": "Custom Portlet", "title": "Budget vs. Actual",
+        "column": 1, "order": 6, "state": "normal", "locked": false, "portletClass": "ScriptablePortlet", "setupUrl": "/app/center/setup/scriptportletsetup.nl?portletid=-1201&sectionid=-29&qelem=servercontentneg1201", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/scriptportletsetup.nl", "formType": "portletsettings",
+          "entries": [ ["inpt_scriptsource", "Budget vs. Actual"], ["scriptsource", "2436_1"], ["scripttype", "2436"], ["script", "1"] ],
+          "display": { "inpt_scriptsource": "Budget vs. Actual" }, "refs": { "scriptSource": "2436_1", "scriptName": "Budget vs. Actual" } }
+      },
+      {
+        "key": "p7", "slotId": -1001, "type": "scriptportlet", "typeLabel": "Custom Portlet", "title": "Company Sales Dashboard",
+        "column": 1, "order": 7, "state": "minimized", "locked": false, "portletClass": "ScriptablePortlet", "setupUrl": null, "editUrl": null,
+        "app": { "scriptId": 811, "deploymentId": 3, "raw": { "portletId": -1001, "scriptId": 811, "deploymentId": 3 } },
+        "settings": { "kind": "none", "note": "No Set Up action exposed for this portlet" }
+      },
+      {
+        "key": "p8", "slotId": -7216, "type": "trendgraph", "typeLabel": "Trend Graph", "title": "Sales trend",
+        "column": 1, "order": 8, "state": "normal", "locked": false, "portletClass": "ChartPortlet", "setupUrl": "/app/center/setup/trendgraph.nl?portletid=-7216&sectionid=-29&qelem=servercontentneg7216", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/trendgraph.nl", "formType": "PortletSettings",
+          "entries": [ ["setting_TRENDGRAPH_CUSTOM_TITLE_{{SLOT}}", "Sales trend"], ["setting_TRENDGRAPH_CHART_TYPE_{{SLOT}}", "trendgraph_line"], ["inpt_setting_TRENDGRAPH_KPI_{{SLOT}}", "Sales"], ["setting_TRENDGRAPH_KPI_{{SLOT}}", "SALES"], ["setting_TRENDGRAPH_TYPE_{{SLOT}}", "WEEKLY"], ["setting_TRENDGRAPH_AVG_{{SLOT}}", "T"], ["setting_TRENDGRAPH_AVG_{{SLOT}}_send", "T"], ["setting_TRENDGRAPH_AVGWINDOW_{{SLOT}}", "2"], ["setting_TRENDGRAPH_LAST_POINT_{{SLOT}}", "T"], ["setting_TRENDGRAPH_LAST_POINT_{{SLOT}}_send", "T"], ["setting_TRENDGRAPH_INCLUDES_ZERO_{{SLOT}}_send", ""], ["setting_TRENDGRAPH_CHARTTHEME_{{SLOT}}", "trendgraph_match_color_theme_bold"], ["setting_TRENDGRAPH_BACKGROUND_TYPE_{{SLOT}}", "trendgraph_global_background"] ],
+          "display": { "inpt_setting_TRENDGRAPH_KPI_{{SLOT}}": "Sales" }, "refs": { "kpis": "Sales" } }
+      },
+      {
+        "key": "p9", "slotId": -52, "type": "settings", "typeLabel": "Settings", "title": "Settings",
+        "column": 1, "order": 9, "state": "minimized", "locked": false, "portletClass": "Portlet", "setupUrl": null, "editUrl": null, "app": null,
+        "settings": { "kind": "none" }
+      },
+      {
+        "key": "p10", "slotId": -58, "type": "shortcuts", "typeLabel": "Shortcuts", "title": "Shortcuts",
+        "column": 2, "order": 1, "state": "normal", "locked": false, "portletClass": "Portlet", "setupUrl": "/app/center/setup/shortcuts.nl?sectionid=-29&qelem=servercontentneg58", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/shortcuts.nl", "formType": "shortcuts",
+          "entries": [ ["shortcutfields", "shortcutseqnum\u0001shortcutenable\u0001shortcutlabel\u0001shortcuturl\u0001shortcutnewwindow\u0001shortcutcenterid\u0001shortcutcenterlinkid\u0001shortcutid"], ["shortcutflags", "0\u00014\u00014\u00014\u00014\u00010\u00010\u00010"], ["shortcuttypes", "text\u0001checkbox\u0001text\u0001text\u0001checkbox\u0001text\u0001text\u0001text"], ["shortcutdata", "1\u0001T\u0001Approve Bills\u0001/app/accounting/transactions/vendorbills.nl\u0001T\u0001\u0001\u0001\u00022\u0001T\u0001New Transfer Order\u0001/app/accounting/transactions/trnfrord.nl\u0001F\u0001\u0001\u0001"], ["nextshortcutidx", "3"], ["shortcutvalid", "T"] ],
+          "display": {}, "refs": { "shortcutCount": 2, "shortcuts": [ { "enabled": true, "label": "Approve Bills", "url": "/app/accounting/transactions/vendorbills.nl", "newWindow": true }, { "enabled": true, "label": "New Transfer Order", "url": "/app/accounting/transactions/trnfrord.nl", "newWindow": false } ] } }
+      },
+      {
+        "key": "p11", "slotId": -80, "type": "kpimeter", "typeLabel": "KPI Meter", "title": "KPI Meter",
+        "column": 2, "order": 2, "state": "normal", "locked": false, "portletClass": "ChartPortlet", "setupUrl": "/app/center/setup/kpimetersetup.nl?portletid=-80&sectionid=-29&qelem=servercontentneg80", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/kpimetersetup.nl", "formType": "portletsettings",
+          "entries": [ ["stdfields", "stdseqnum\u0001stdactive\u0001stdkey\u0001stddaterange\u0001stdperiod\u0001stdhighlightoption\u0001stdhighlightmarker\u0001stdcompare\u0001stdcomparedaterange\u0001stdcompareperiod"], ["stddata", "2\u0001T\u0001INVENTORY\u0001TODAY\u0001TP\u0001\u00016.00\u0001T\u0001LYTD\u0001LP"], ["nextstdidx", "2"], ["stdvalid", "T"] ],
+          "display": {}, "refs": { "kpis": "INVENTORY" } }
+      },
+      {
+        "key": "p12", "slotId": -63, "type": "reminders", "typeLabel": "Reminders", "title": "Reminders",
+        "column": 2, "order": 3, "state": "normal", "locked": false, "portletClass": "RemindersPortlet", "setupUrl": null, "editUrl": null, "app": null,
+        "settings": { "kind": "reminders", "headlineItems": ["BILLSTOAPPROVE"], "standardItems": ["SEARCH132"], "zeroResults": false, "labels": { "BILLSTOAPPROVE": "Bills to Approve", "SEARCH132": "Phone Call View" }, "refs": { "reminderCount": 2 } }
+      },
+      {
+        "key": "p13", "slotId": -32000, "type": "lastlogin", "typeLabel": "My Login Audit", "title": "My login audit",
+        "column": 2, "order": 4, "state": "normal", "locked": false, "portletClass": "Portlet", "setupUrl": "/app/center/setup/lastlogin.nl?portletid=-32000&sectionid=-29&qelem=servercontentneg32000", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/lastlogin.nl", "formType": "portletsettings",
+          "entries": [ ["entityid", "0"], ["hasChild", "F"], ["setting_LASTLOGIN_SHOWLASTLOGIN_{{SLOT}}", "T"], ["setting_LASTLOGIN_SHOWLASTLOGIN_{{SLOT}}_send", "T"], ["setting_LASTLOGIN_SHOWLASTUILOGIN_{{SLOT}}_send", ""], ["setting_LASTLOGIN_SHOWSUCCESSTODAY_{{SLOT}}", "T"], ["setting_LASTLOGIN_SHOWSUCCESSTODAY_{{SLOT}}_send", "T"] ],
+          "display": {}, "refs": {} }
+      },
+      {
+        "key": "p14", "slotId": -59, "type": "list", "typeLabel": "List", "title": "Classes",
+        "column": 2, "order": 5, "state": "normal", "locked": false, "portletClass": "SearchResultPortlet", "setupUrl": "/app/center/setup/listsearch.nl?portletid=-59&sectionid=-29&qelem=servercontentneg59", "editUrl": null, "app": null,
+        "settings": { "kind": "form", "formAction": "/app/center/setup/listsearch.nl", "formType": "PortletSettings",
+          "entries": [ ["setting_LIST_TYPE_{{SLOT}}_display", "Customer"], ["setting_LIST_TYPE_{{SLOT}}", "CUSTOMER"], ["setting_LIST_SIZE_{{SLOT}}", "5"], ["setting_LIST_DLE_{{SLOT}}", "T"], ["setting_LIST_DLE_{{SLOT}}_send", "T"] ],
+          "display": { "setting_LIST_TYPE_{{SLOT}}_display": "Customer" }, "refs": { "listType": "CUSTOMER", "listTypeName": "Customer" } }
+      }
+    ]
+  }
+}

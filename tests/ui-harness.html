@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NDM UI harness</title>
+<style>body{font-family:sans-serif;margin:20px;background:#eef} .ns-portlet-wrapper{border:1px solid #99a;margin:6px;padding:6px;background:#fff}</style>
+</head>
+<body>
+<h1>Fake NetSuite dashboard (UI harness)</h1>
+<p>This page stubs the parts of NetSuite and the Chrome extension API the panel touches so <code>src/ui/panel.js</code> can be exercised outside NetSuite. Backend calls fail (there is no server), which is expected.</p>
+<script id="ns-csrf-token" type="application/json">{"name":"_csrf","value":"harness"}</script>
+<a href="/app/center/card.nl?sc=-29">Home</a> · <a href="/app/center/card.nl?sc=124">EST</a> · <a href="/app/center/card.nl?sc=86">Aline Reports</a>
+<div id="ns-dashboard-layout-plugin" data-current-layout="two_column_right"></div>
+<div class="ns-dashboard-layout-plugin-content"><span data-action="changeColumnLayout" data-action-args="TWO_COLUMN_RIGHT"><img class="ns-selected"></span></div>
+<div class="ns-dashboard-container" data-column-count="2" data-dashboard-type="HOME" data-dashboard-identity='{"dashboardid":-29}' data-dashboard-locked="false" data-backend-url="/app/center/card.nl">
+  <div id="dashboard-column-1" class="ns-dashboard-column" data-column-order="1" data-column-type="wide">
+    <div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="searchresults" data-portlet-id="-14050" data-portlet-locked="false"
+         data-portlet-actions='{"close":"close","setup":{"name":"setup","args":["/app/center/setup/customsearch.nl?portletid=-14050&amp;sectionid=-29&amp;qelem=servercontentneg14050","customsearchsetup","560","420","Custom Search"]}}'>
+      <div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Purchasing Tracking Items</h2></div>
+      <div class="ns-portlet-body"><div class="ns-portlet-content" data-portlet-class="SearchResultPortlet">rows…</div></div>
+    </div>
+    <div class="ns-portlet-wrapper ns-portlet-window-state-minimized" data-portlet-type="scriptportlet" data-portlet-id="-1200" data-portlet-locked="false" data-portlet-actions='{"close":"close"}'>
+      <div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Sales Reports</h2></div>
+      <div class="ns-portlet-body"><div class="ns-portlet-content" data-portlet-class="ScriptablePortlet"></div></div>
+    </div>
+    <div class="ns-portlet-wrapper ns-portlet-window-state-minimized" data-portlet-type="settings" data-portlet-id="-52" data-portlet-locked="false" data-portlet-actions='{"minimize":"minimize"}'>
+      <div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Settings</h2></div>
+    </div>
+  </div>
+  <div id="dashboard-column-2" class="ns-dashboard-column" data-column-order="2" data-column-type="narrow">
+    <div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="shortcuts" data-portlet-id="-58" data-portlet-locked="false" data-portlet-actions='{"close":"close","setup":{"name":"setup","args":["/app/center/setup/shortcuts.nl?sectionid=-29&amp;qelem=servercontentneg58","shortcutssetup","750","600","Set Up Shortcuts"]}}'>
+      <div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Shortcuts</h2></div>
+    </div>
+    <div class="ns-portlet-wrapper ns-portlet-window-state-normal" data-portlet-type="reminders" data-portlet-id="-63" data-portlet-locked="false" data-portlet-actions='{"close":"close","setup":"setup"}'>
+      <div class="ns-portlet-header"><h2 class="ns-portlet-header-text">Reminders</h2></div>
+    </div>
+  </div>
+</div>
+<script>
+  // Stub of the Chrome extension API surface used by the panel and storage module.
+  const mem = {};
+  window.chrome = {
+    runtime: {
+      getURL: (p) => '/extension/' + p,
+      sendMessage: (m) => console.log('sendMessage', m),
+      lastError: null,
+    },
+    storage: { local: {
+      get: (keys, cb) => { const out = {}; (Array.isArray(keys) ? keys : [keys]).forEach((k) => { if (k in mem) out[k] = mem[k]; }); cb(out); },
+      set: (obj, cb) => { Object.assign(mem, obj); cb && cb(); },
+      remove: (keys, cb) => { (Array.isArray(keys) ? keys : [keys]).forEach((k) => delete mem[k]); cb && cb(); },
+    } },
+  };
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+  window.addEventListener('unhandledrejection', (e) => window.__errors.push(String(e.reason && e.reason.message || e.reason)));
+</script>
+<script type="module">
+  import { mount } from '/extension/src/ui/panel.js';
+  const p = mount();
+  window.__ndm = p;
+</script>
+</body>
+</html>
