@@ -57,8 +57,43 @@
 </script>
 <script type="module">
   import { mount } from '/extension/src/ui/panel.js';
+  const q = new URLSearchParams(location.search);
+  if (q.get('demo')) {
+    // Store-screenshot mode: make the fake page look like a plain NetSuite Home dashboard.
+    document.querySelector('h1').textContent = 'Home';
+    document.querySelector('p').remove();
+    document.body.style.background = '#f4f6f9';
+    document.querySelectorAll('.ns-portlet-wrapper').forEach((w, i) => {
+      w.style.cssText = 'border:1px solid #d7dee7;border-radius:6px;margin:10px 0;padding:0;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)';
+      const h = w.querySelector('.ns-portlet-header'); h.style.cssText = 'background:#607998;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0';
+      h.querySelector('h2').style.cssText = 'margin:0;font-size:14px;font-weight:600;color:#fff';
+      const body = w.querySelector('.ns-portlet-body') || w.appendChild(document.createElement('div'));
+      body.className = 'ns-portlet-body';
+      body.style.cssText = 'padding:10px 12px;color:#333;font-size:13px';
+      const rows = ['Item A100 · 24 on order · due 12/09', 'Item B220 · 8 on order · due 15/09', 'Item C315 · 120 on order · due 22/09'];
+      body.innerHTML = i === 0 ? rows.map((r) => `<div style="padding:4px 0;border-bottom:1px solid #eef2f6">${r}</div>`).join('') : '<div style="color:#8a97a6">…</div>';
+    });
+    document.querySelector('.ns-dashboard-container').style.cssText = 'display:grid;grid-template-columns:2fr 1fr;gap:16px;max-width:1000px';
+  }
   const p = mount();
   window.__ndm = p;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  (async () => {
+    await wait(300);
+    while (!p.panel) await wait(50);
+    if (q.get('open')) p.toggle(true);
+    if (q.get('tab')) { p.activeTab = q.get('tab'); p.render(); }
+    if (q.get('file')) {
+      const json = await fetch('/tests/fixtures/sample-home.nsdash.json').then((r) => r.text());
+      const input = p.root.querySelector('input[type=file]');
+      if (input) { const dt = new DataTransfer(); dt.items.add(new File([json], 'sales-team-home.nsdash.json', { type: 'application/json' })); input.files = dt.files; }
+    }
+    if (q.get('log')) {
+      for (const [cls, msg] of [['info', 'Capturing Home…'], ['ok', 'Captured 18 portlets (0 with settings errors)'], ['info', 'Planning import of "Sales team Home" into Home…'], ['ok', '1/21 Set layout TWO_COLUMN → TWO_COLUMN_RIGHT'], ['ok', '2/21 Added slot -14050'], ['ok', '3/21 Applied 13 settings to slot -14050'], ['skip', '8/21 Skip "Stock Checks": KPI Scorecard portlets are not available on this tab.'], ['ok', 'Import complete. Reload the page to see the new dashboard.']]) p.say(msg, cls);
+    }
+    document.title = 'NetSuite Dashboard Manager';
+    window.__ready = true;
+  })();
 </script>
 </body>
 </html>
