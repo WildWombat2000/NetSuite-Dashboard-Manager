@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b74c7"/>
+      <stop offset="1" stop-color="#153f70"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fd0b9"/>
+      <stop offset="1" stop-color="#159c8a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0a2444" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- app tile -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- back sheet: the copy -->
+  <rect x="150" y="86" width="272" height="216" rx="26" fill="#ffffff" opacity="0.28"/>
+  <rect x="176" y="116" width="150" height="58" rx="12" fill="#ffffff" opacity="0.22"/>
+  <rect x="340" y="116" width="56" height="150" rx="12" fill="#ffffff" opacity="0.22"/>
+  <rect x="176" y="188" width="150" height="78" rx="12" fill="#ffffff" opacity="0.22"/>
+
+  <!-- front sheet: the dashboard -->
+  <g filter="url(#shadow)">
+    <rect x="92" y="150" width="272" height="216" rx="26" fill="#ffffff"/>
+  </g>
+  <!-- wide column -->
+  <rect x="118" y="180" width="150" height="58" rx="12" fill="#1f5a9b"/>
+  <rect x="118" y="252" width="150" height="88" rx="12" fill="#3f7fc4"/>
+  <!-- narrow column -->
+  <rect x="282" y="180" width="56" height="160" rx="12" fill="#8fb4de"/>
+
+  <!-- accent: KPI bar lines inside the top tile -->
+  <rect x="134" y="198" width="70" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
+  <rect x="134" y="214" width="104" height="8" rx="4" fill="#ffffff" opacity="0.6"/>
+
+  <!-- transfer badge -->
+  <circle cx="392" cy="392" r="78" fill="url(#teal)" stroke="#ffffff" stroke-width="14"/>
+  <path d="M352 392 H420 M396 362 L428 392 L396 422" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
