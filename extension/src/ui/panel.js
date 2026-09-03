@@ -2,7 +2,7 @@
 import { NsClient } from '../nsclient.js';
 import { parseDashboardDoc, listDashboardTabs, tabName, typeInfo, validatePackage, summarizePortlet, LAYOUTS } from '../model.js';
 import { captureDashboard, captureBundle } from '../capture.js';
-import { planImport, executePlan, describeStep } from '../apply.js';
+import { planImport, executePlan, describeStep, suggestBundleMapping } from '../apply.js';
 import { diffPackages, describeDiff } from '../diff.js';
 import { listLibrary, saveToLibrary, getLibraryPackage, deleteFromLibrary, downloadJson, downloadText, safeFilename, readJsonFile, getSettings, saveSettings } from '../storage.js';
 import { generateSdf } from '../sdf.js';
@@ -31,6 +31,7 @@ class Panel {
     this.dashboardName = tabName(this.dashboardId, this.tabs);
     this.settings = { autoBackup: true, pauseMs: 120 };
     this.pendingImport = null; // {pkg, plan}
+    this.bundle = null; // bundle wizard state
     this.activeTab = 'dashboard';
   }
 
@@ -233,20 +234,24 @@ class Panel {
     const backupChk = h('input', { type: 'checkbox', checked: this.settings.autoBackup !== false });
     const libSel = h('select', {}, h('option', { value: '' }, '— pick a saved dashboard —'));
     listLibrary().then((items) => { for (const it of items) libSel.append(h('option', { value: it.id }, `${it.kind === 'backup' ? '[backup] ' : ''}${it.name}`)); }).catch(() => {});
-    const bundleSel = h('select', { hidden: true });
 
     const preview = async () => {
       let pkg = null;
-      if (fileInput.files && fileInput.files[0]) pkg = await readJsonFile(fileInput.files[0]);
-      else if (libSel.value) pkg = await getLibraryPackage(libSel.value);
+      let label = '';
+      if (fileInput.files && fileInput.files[0]) { pkg = await readJsonFile(fileInput.files[0]); label = fileInput.files[0].name; }
+      else if (libSel.value) { pkg = await getLibraryPackage(libSel.value); label = libSel.selectedOptions[0].textContent; }
       if (!pkg) return this.say('Choose a file or a saved dashboard first', 'skip');
       if (pkg.format === 'netsuite-dashboard-bundle') {
-        if (!bundleSel.value) {
-          bundleSel.hidden = false;
-          bundleSel.replaceChildren(...pkg.dashboards.map((d, i) => h('option', { value: i }, `${d.source.dashboardName} (${d.source.dashboardId})`)));
-          return this.say('This file is a bundle: pick which dashboard to import, then preview again', 'skip');
-        }
-        pkg = pkg.dashboards[Number(bundleSel.value)];
+        // Multi-tab bundle: open the mapping wizard instead of a single plan.
+        this.pendingImport = null;
+        this.bundle = {
+          label, bundle: pkg,
+          mappings: suggestBundleMapping(pkg, this.tabs),
+          mode: modeSel.value, applyLayout: layoutChk.checked, fixOrder: orderChk.checked, autoBackup: backupChk.checked,
+          plans: null, results: null,
+        };
+        this.render();
+        return;
       }
       const errs = validatePackage(pkg);
       if (errs.length) return this.say(`Invalid package: ${errs.join('; ')}`, 'err');
@@ -261,16 +266,122 @@ class Panel {
         h('h2', {}, `Import into ${this.dashboardName}`),
         h('div', { class: 'ndm-row' }, h('span', { style: 'width:70px' }, 'File'), fileInput),
         h('div', { class: 'ndm-row' }, h('span', { style: 'width:70px' }, 'or saved'), libSel),
-        h('div', { class: 'ndm-row' }, bundleSel),
         h('div', { class: 'ndm-row' }, h('span', { style: 'width:70px' }, 'Mode'), modeSel),
         h('div', { class: 'ndm-row' },
           h('label', { class: 'ndm-check' }, layoutChk, 'Copy column layout'),
           h('label', { class: 'ndm-check' }, orderChk, 'Fix ordering after adding'),
           h('label', { class: 'ndm-check' }, backupChk, 'Back up first')),
-        h('div', { class: 'ndm-row' }, h('button', { class: 'ndm-btn', type: 'button', onclick: () => this.run('Preview', preview) }, 'Preview plan'))),
-      this.pendingImport ? this.renderPlan() : h('div', { class: 'ndm-muted' }, 'Nothing planned yet. Pick a package and preview; nothing changes until you click Apply.'),
+        h('div', { class: 'ndm-row' }, h('button', { class: 'ndm-btn', type: 'button', onclick: () => this.run('Preview', preview) }, 'Preview plan')),
+        h('div', { class: 'ndm-muted', style: 'margin-top:6px' }, 'Single-dashboard files are planned against this tab. Multi-tab bundles open a wizard that maps each exported tab to one of yours.')),
+      this.bundle ? this.renderBundleWizard() : null,
+      this.pendingImport ? this.renderPlan() : (this.bundle ? null : h('div', { class: 'ndm-muted' }, 'Nothing planned yet. Pick a package and preview; nothing changes until you click Apply.')),
       h('div', { class: 'ndm-section' }, h('h2', {}, 'Activity'), this.progressBar(), this.logBox()),
     );
+  }
+
+  // ---------------------------------------------------------------- Bundle wizard
+  renderBundleWizard() {
+    const b = this.bundle;
+    const tabOptions = () => [h('option', { value: '' }, '— skip —'), ...this.tabs.map((t) => h('option', { value: t.id }, `${t.name} (${t.id})`))];
+    const invalidate = () => { b.plans = null; b.results = null; };
+    const rows = b.mappings.map((m, i) => {
+      const chk = h('input', { type: 'checkbox', checked: !!m.include, onchange: (e) => { m.include = e.target.checked; if (m.include && m.targetId == null) { m.targetId = this.dashboardId; m.reason = 'chosen: this tab'; } invalidate(); this.render(); } });
+      const sel = h('select', { disabled: !m.include, onchange: (e) => { m.targetId = e.target.value === '' ? null : Number(e.target.value); m.include = m.targetId != null; m.reason = 'chosen'; invalidate(); this.render(); } }, ...tabOptions());
+      sel.value = m.targetId == null ? '' : String(m.targetId);
+      const plan = b.plans && b.plans[i];
+      const res = b.results && b.results[i];
+      const placeable = plan && !plan.error ? plan.summary.adds : null;
+      const verdict = !m.available ? h('span', { class: 'ndm-pill err' }, 'not available here')
+        : plan && !plan.error && placeable === 0 ? h('span', { class: 'ndm-pill warn' }, 'nothing to add')
+        : plan && !plan.error ? h('span', { class: 'ndm-pill ok' }, `${placeable} of ${m.pkg.dashboard.portlets.length} will import`)
+        : h('span', { class: 'ndm-pill ok' }, 'available');
+      return h('li', { style: m.include ? '' : 'opacity:.6' },
+        chk,
+        h('div', { class: 'ndm-flex1' },
+          h('div', { class: 'ndm-row', style: 'margin-top:0' },
+            h('span', { class: 'ndm-title' }, `${m.pkg.source.dashboardName} (${m.pkg.source.dashboardId})`),
+            verdict,
+            h('span', { class: 'ndm-muted' }, `${m.pkg.dashboard.portlets.length} portlets · ${m.pkg.dashboard.layout}`)),
+          h('div', { class: 'ndm-row', style: 'margin-top:4px' },
+            h('span', { class: 'ndm-muted' }, 'import into'), sel,
+            h('span', { class: 'ndm-muted' }, m.reason)),
+          plan ? h('div', { class: 'ndm-row', style: 'margin-top:4px' },
+            h('span', { class: 'ndm-pill ok' }, `${plan.summary.adds} add`), h('span', { class: 'ndm-pill' }, `${plan.summary.settings} configure`),
+            h('span', { class: 'ndm-pill warn' }, `${plan.summary.hides} remove`), h('span', { class: 'ndm-pill err' }, `${plan.summary.skips} skipped`),
+            plan.summary.layoutChange ? h('span', { class: 'ndm-pill' }, 'layout change') : null) : null,
+          plan && plan.warnings.length ? h('div', { class: 'ndm-warn' }, ...plan.warnings.map((w) => h('div', {}, w))) : null,
+          plan ? h('details', {}, h('summary', { class: 'ndm-muted' }, `${plan.steps.length} steps`), h('div', { class: 'ndm-steps' }, ...plan.steps.map((st, k) => h('div', { class: st.kind === 'skip' ? 'skip' : '' }, `${k + 1}. ${describeStep(st)}`)))) : null,
+          plan && plan.error ? h('div', { class: 'ndm-warn' }, plan.error) : null,
+          res ? h('div', { class: 'ndm-row', style: 'margin-top:4px' },
+            h('span', { class: `ndm-pill ${res.failed ? 'err' : 'ok'}` }, res.failed ? `${res.failed} failed` : 'done'),
+            h('a', { href: `${location.origin}/app/center/card.nl?sc=${m.targetId}`, target: '_blank' }, 'open tab')) : null));
+    });
+    const mapped = b.mappings.filter((m) => m.include && m.targetId != null);
+    const dupTargets = mapped.map((m) => m.targetId).filter((id, i, a) => a.indexOf(id) !== i);
+    const selectAvailable = () => { for (const m of b.mappings) { m.include = m.available; if (!m.available) m.targetId = null; } invalidate(); this.render(); };
+    const clearAll = () => { for (const m of b.mappings) m.include = false; invalidate(); this.render(); };
+    const previewAll = async () => {
+      b.results = null;
+      b.plans = [];
+      for (const m of b.mappings) {
+        if (!m.include || m.targetId == null) { b.plans.push(null); continue; }
+        this.say(`Planning ${m.pkg.source.dashboardName} → ${tabName(m.targetId, this.tabs)}…`);
+        try {
+          const plan = await planImport(this.client, m.pkg, m.targetId, { mode: b.mode, doc: document, applyLayout: b.applyLayout, fixOrder: b.fixOrder });
+          b.plans.push(plan);
+        } catch (e) { b.plans.push({ error: `Could not plan: ${e.message}`, steps: [], warnings: [], summary: { adds: 0, settings: 0, hides: 0, skips: 0 } }); }
+      }
+      // Deselect tabs where nothing would actually be added, so "Apply all" only touches useful targets.
+      b.mappings.forEach((m, i) => { const p = b.plans[i]; if (p && !p.error && p.summary.adds === 0 && p.summary.hides === 0) m.include = false; });
+      this.say('Bundle preview ready. Review the selection, then Apply selected.', 'ok');
+      this.render();
+    };
+    const applyAll = async () => {
+      if (!b.plans) return this.say('Preview first', 'skip');
+      const pairs = b.mappings.map((m, i) => ({ m, plan: b.plans[i] })).filter((p) => p.m.include && p.plan && !p.plan.error);
+      if (!pairs.length) return this.say('Nothing mapped', 'skip');
+      const total = pairs.reduce((n, p) => n + p.plan.summary.adds, 0);
+      if (!confirm(`Import ${pairs.length} dashboard(s) (${total} portlets) from "${b.label}" into: ${pairs.map((p) => tabName(p.m.targetId, this.tabs)).join(', ')}?\n\nMode: ${b.mode}. ${b.autoBackup ? 'Each target is backed up first.' : 'No backups.'}\n\nProceed?`)) return;
+      this.clearLog();
+      b.results = b.mappings.map(() => null);
+      for (const { m, plan } of pairs) {
+        const idx = b.mappings.indexOf(m);
+        const target = tabName(m.targetId, this.tabs);
+        try {
+          if (b.autoBackup) {
+            this.say(`Backing up ${target}…`);
+            const snap = await captureDashboard(this.client, m.targetId, { doc: document, includeSettings: true, tabs: this.tabs });
+            await saveToLibrary({ name: `Backup ${target} ${new Date().toLocaleString()}`, kind: 'backup', pkg: snap, notes: 'before bundle import' });
+          }
+          this.say(`Importing ${m.pkg.source.dashboardName} → ${target}…`);
+          const res = await executePlan(this.client, plan, {
+            pauseMs: this.settings.pauseMs,
+            onProgress: (p) => { this.setProgress(p.index / p.total); if (p.phase === 'done') this.say(`  ${p.index}/${p.total} ${p.result.message}`, p.result.ok ? (p.result.skipped ? 'skip' : 'ok') : 'err'); },
+          });
+          const failed = res.results.filter((r) => !r.ok).length;
+          b.results[idx] = { failed };
+          this.say(`${target}: ${failed ? `${failed} step(s) failed` : 'done'}`, failed ? 'err' : 'ok');
+        } catch (e) {
+          b.results[idx] = { failed: 1 };
+          this.say(`${target}: ${e.message}`, 'err');
+        }
+      }
+      this.say('Bundle import finished. Open each tab (links above) or reload this page.', 'ok');
+      this.render();
+    };
+    return h('div', { class: 'ndm-section' },
+      h('h2', {}, `Bundle: ${b.label}`),
+      h('div', { class: 'ndm-muted' }, `${b.mappings.length} dashboards exported from ${b.bundle.dashboards[0]?.source.host || 'another account'}. Tabs that exist in this account (same id or name) are pre-selected; tabs you do not have are unselected and can be redirected to another tab if you want their content.`),
+      h('div', { class: 'ndm-row' },
+        h('button', { class: 'ndm-btn secondary small', type: 'button', onclick: selectAvailable }, `Select all available (${b.mappings.filter((m) => m.available).length})`),
+        h('button', { class: 'ndm-btn secondary small', type: 'button', onclick: clearAll }, 'Clear')),
+      h('ul', { class: 'ndm-list' }, ...rows),
+      dupTargets.length ? h('div', { class: 'ndm-warn' }, 'Two exported dashboards point at the same target tab; the second import will merge into the first (or fail on slot capacity).') : null,
+      h('div', { class: 'ndm-row' },
+        h('button', { class: 'ndm-btn', type: 'button', disabled: !mapped.length, onclick: () => this.run('Preview selected', previewAll) }, 'Preview selected'),
+        h('button', { class: 'ndm-btn', type: 'button', disabled: !b.plans || !mapped.length, onclick: () => this.run('Apply selected', applyAll) }, 'Apply selected'),
+        h('button', { class: 'ndm-btn secondary', type: 'button', onclick: () => { this.bundle = null; this.render(); } }, 'Discard'),
+        h('span', { class: 'ndm-muted' }, `Mode: ${b.mode} · ${mapped.length} of ${b.mappings.length} selected`)));
   }
 
   renderPlan() {

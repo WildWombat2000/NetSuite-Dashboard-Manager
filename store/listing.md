@@ -87,9 +87,8 @@ https://github.com/WildWombat2000/NetSuite-Dashboard-Manager/blob/main/store/pri
 
 ## Assets checklist
 
-- [ ] Store icon 128×128 PNG: `extension/icons/icon128.png` (replace with a designed icon before
-      publishing if desired; the placeholder is a blue tile with a white "D").
-- [ ] 1–5 screenshots, 1280×800 or 640×400 PNG/JPEG, no alpha: `store/screenshots/*.png`.
+- [ ] Store icon 128×128 PNG: `store/icon/icon-128.png` (SVG source in `store/icon/icon.svg`).
+- [ ] Five screenshots, 1280×800 PNG: `store/screenshots/1-dashboard.png` … `5-bundle.png`.
 - [ ] Optional small promo tile 440×280, marquee 1400×560.
 - [ ] Upload zip: `python scripts/package.py` → `dist/netsuite-dashboard-manager-<version>.zip`.
 

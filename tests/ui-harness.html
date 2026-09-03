@@ -88,6 +88,16 @@
       const input = p.root.querySelector('input[type=file]');
       if (input) { const dt = new DataTransfer(); dt.items.add(new File([json], 'sales-team-home.nsdash.json', { type: 'application/json' })); input.files = dt.files; }
     }
+    if (q.get('bundle')) {
+      // Build a 4-tab bundle from the fixture: two tabs this fake account has (Home, EST), two it lacks.
+      const pkg = await fetch('/tests/fixtures/sample-home.nsdash.json').then((r) => r.json());
+      const clone = (id, name) => { const c = JSON.parse(JSON.stringify(pkg)); c.source.dashboardId = id; c.source.dashboardName = name; return c; };
+      const bundle = { format: 'netsuite-dashboard-bundle', version: 1, exportedAt: new Date().toISOString(), dashboards: [clone(-29, 'Home'), clone(124, 'EST'), clone(555, 'Warehouse'), clone(777, 'Purchasing')] };
+      const input = p.root.querySelector('input[type=file]');
+      const dt = new DataTransfer(); dt.items.add(new File([JSON.stringify(bundle)], 'sales-team-all-tabs.nsdash-bundle.json', { type: 'application/json' })); input.files = dt.files;
+      [...p.root.querySelectorAll('button')].find((b) => b.textContent === 'Preview plan').click();
+      await wait(400);
+    }
     if (q.get('log')) {
       for (const [cls, msg] of [['info', 'Capturing Home…'], ['ok', 'Captured 18 portlets (0 with settings errors)'], ['info', 'Planning import of "Sales team Home" into Home…'], ['ok', '1/21 Set layout TWO_COLUMN → TWO_COLUMN_RIGHT'], ['ok', '2/21 Added slot -14050'], ['ok', '3/21 Applied 13 settings to slot -14050'], ['skip', '8/21 Skip "Stock Checks": KPI Scorecard portlets are not available on this tab.'], ['ok', 'Import complete. Reload the page to see the new dashboard.']]) p.say(msg, cls);
     }

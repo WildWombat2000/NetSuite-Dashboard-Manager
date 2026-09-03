@@ -1,6 +1,6 @@
 {
   "name": "netsuite-dashboard-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Browser extension source. package.json exists only so Node can run the modules for tests; Chrome ignores it.",

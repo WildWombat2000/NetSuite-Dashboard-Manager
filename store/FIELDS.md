@@ -20,8 +20,8 @@ Files referenced are relative to the repo root `C:\Users\ReubenJoyceAline\Downlo
 
 | Field | Value |
 |---|---|
-| Upload new package | `dist\netsuite-dashboard-manager-0.1.0.zip` |
-| (read-only after upload) Name / Version | NetSuite Dashboard Manager / 0.1.0 |
+| Upload new package | `dist\netsuite-dashboard-manager-0.1.1.zip` |
+| (read-only after upload) Name / Version | NetSuite Dashboard Manager / 0.1.1 |
 
 ---
 
@@ -80,7 +80,7 @@ NOTES
 | Field | Value |
 |---|---|
 | Store icon (128×128) | `store\icon\icon-128.png` |
-| Screenshots (1280×800, up to 5) | `store\screenshots\1-dashboard.png`, `2-import.png`, `3-admin.png`, `4-compare.png` in that order |
+| Screenshots (1280×800, up to 5) | `store\screenshots\1-dashboard.png`, `2-import.png`, `3-admin.png`, `4-compare.png`, `5-bundle.png` in that order |
 | Small promo tile (440×280) | `store\promo-440x280.png` (optional) |
 | Marquee promo tile (1400×560) | leave empty |
 | Global promo video (YouTube URL) | leave empty |

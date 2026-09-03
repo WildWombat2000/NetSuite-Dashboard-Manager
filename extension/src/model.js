@@ -160,7 +160,7 @@ export function newPackage({ source, dashboard, notes }) {
     format: PACKAGE_FORMAT,
     version: PACKAGE_VERSION,
     exportedAt: new Date().toISOString(),
-    generator: 'NetSuite Dashboard Manager 0.1.0',
+    generator: 'NetSuite Dashboard Manager 0.1.1',
     notes: notes || '',
     source,
     dashboard,

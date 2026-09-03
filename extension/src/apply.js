@@ -157,9 +157,10 @@ export function mapColumns(fromLayout, toLayout) {
  * Execute a plan. Never throws for a single failing step; every step result is logged.
  * @returns {{ok:boolean, results:Array, ids:Object}}
  */
-export async function executePlan(client, plan, { dryRun = false, onProgress = () => {}, pauseMs = 120 } = {}) {
+export async function executePlan(client, plan, { dryRun = false, onProgress = () => {}, pauseMs = 120, removeOnFailure = true } = {}) {
   const dash = plan.targetDashboardId;
   const ids = {}; // srcKey -> portletId
+  const removed = new Set(); // srcKeys whose portlet was rolled back after a failed configuration
   const results = [];
   let i = 0;
   for (const step of plan.steps) {
@@ -169,17 +170,51 @@ export async function executePlan(client, plan, { dryRun = false, onProgress = (
     try {
       if (step.kind === 'skip') { r.message = step.reason; r.skipped = true; }
       else if (dryRun) { r.message = describeStep(step, ids); r.dryRun = true; if (step.kind === 'show') ids[step.srcKey] = step.portletId; if (step.kind === 'app') ids[step.srcKey] = '(allocated at run time)'; }
+      else if (step.srcKey && removed.has(step.srcKey)) { r.skipped = true; r.message = `Skipped: "${step.title}" was removed after its configuration failed`; }
       else r.message = await runStep(client, dash, step, ids);
     } catch (e) {
       r.ok = false;
       r.message = e instanceof NsError ? e.message : String(e && e.message || e);
       r.detail = e && e.detail;
+      // A portlet whose configuration NetSuite rejected would otherwise sit on the dashboard as an
+      // empty box; remove it again so the dashboard is left exactly as it was for that portlet.
+      if (!dryRun && removeOnFailure && (step.kind === 'settings' || step.kind === 'reminders') && ids[step.srcKey] != null) {
+        try {
+          await client.setPortletVisibility(dash, ids[step.srcKey], false);
+          removed.add(step.srcKey);
+          r.rolledBack = true;
+          r.message += ` — portlet removed again (slot ${ids[step.srcKey]})`;
+        } catch (e2) {
+          r.message += ` — and it could not be removed: ${e2 && e2.message || e2}`;
+        }
+      }
     }
     results.push(r);
     onProgress({ index: i, total: plan.steps.length, step, phase: 'done', result: r });
     if (!dryRun && pauseMs) await sleep(pauseMs);
   }
-  return { ok: results.every((r) => r.ok), results, ids, dryRun };
+  return { ok: results.every((r) => r.ok), results, ids, removed: [...removed], dryRun };
+}
+
+/**
+ * Suggest a target tab for each dashboard in a bundle: same tab id if the recipient has it,
+ * else same name (case-insensitive), else null (= skip).
+ */
+export function suggestBundleMapping(bundle, tabs) {
+  const byId = new Map(tabs.map((t) => [Number(t.id), t]));
+  const byName = new Map(tabs.map((t) => [String(t.name || '').trim().toLowerCase(), t]));
+  return (bundle.dashboards || []).map((pkg) => {
+    const src = pkg.source || {};
+    const id = Number(src.dashboardId);
+    let target = byId.has(id) ? byId.get(id) : byName.get(String(src.dashboardName || '').trim().toLowerCase()) || null;
+    return {
+      pkg,
+      targetId: target ? Number(target.id) : null,
+      include: !!target,
+      available: !!target,
+      reason: target ? (Number(target.id) === id ? 'matches tab id' : 'matches tab name') : 'no matching tab in this account',
+    };
+  });
 }
 
 export function describeStep(step, ids = {}) {

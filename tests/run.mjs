@@ -165,6 +165,40 @@ await test('planImport allocates slots, reports capacity, keeps Settings, applie
   assert.ok(client.calls.some((c) => c[0] === 'vis' && c[2] === false), 'hide calls issued');
   assert.ok(client.calls.some((c) => c[0] === 'app'));
   assert.ok(client.calls.some((c) => c[0] === 'min'));
+  // Rollback: every portlet whose settings failed (stub exposes no Set Up form) must be hidden again
+  // and its later place/minimise steps skipped.
+  const failedSettings = res.results.filter((r) => r.step.kind === 'settings' && !r.ok);
+  assert.ok(failedSettings.length > 0, 'stub should make settings fail');
+  for (const f of failedSettings) {
+    assert.ok(f.rolledBack, `settings failure should roll back: ${f.message}`);
+    const shown = res.results.find((r) => r.step.kind === 'show' && r.step.srcKey === f.step.srcKey);
+    if (shown) assert.ok(client.calls.some((c) => c[0] === 'vis' && c[1] === shown.step.portletId && c[2] === false), 'rolled-back slot hidden');
+    const later = res.results.filter((r) => r.step.srcKey === f.step.srcKey && ['place', 'minimize'].includes(r.step.kind));
+    assert.ok(later.every((r) => r.skipped), 'steps after a rollback are skipped');
+  }
+  assert.ok(res.removed.length === failedSettings.length);
+});
+
+await test('executePlan can be told not to roll back', async () => {
+  const { client, parsed, targetDoc } = stubTarget({ layout: 'TWO_COLUMN_RIGHT', displayed: [], slots: { searchresults: [1337] } });
+  client.loadPortlet = async () => ({ wrapper: '' });
+  const applyMod = await import(src('apply.js'));
+  const one = { ...fixture, dashboard: { ...fixture.dashboard, portlets: [fixture.dashboard.portlets[0]] } };
+  const plan = await planWithStub(applyMod, client, one, 124, { mode: 'merge', doc: targetDoc, parsed });
+  const res = await executePlan(client, plan, { pauseMs: 0, removeOnFailure: false });
+  assert.ok(!client.calls.some((c) => c[0] === 'vis' && c[2] === false));
+  assert.ok(res.results.some((r) => r.step.kind === 'place' && r.ok), 'place still runs without rollback');
+});
+
+await test('suggestBundleMapping matches by id, then name, else unavailable', async () => {
+  const { suggestBundleMapping } = await import(src('apply.js'));
+  const mk = (id, name) => ({ source: { dashboardId: id, dashboardName: name }, dashboard: { layout: 'TWO_COLUMN', portlets: [] } });
+  const bundle = { format: 'netsuite-dashboard-bundle', dashboards: [mk(-29, 'Home'), mk(124, 'EST'), mk(555, 'Warehouse'), mk(777, 'Sales')] };
+  const tabs = [{ id: -29, name: 'Home' }, { id: 124, name: 'EST' }, { id: 91, name: 'sales' }];
+  const m = suggestBundleMapping(bundle, tabs);
+  assert.deepEqual(m.map((x) => [x.targetId, x.include, x.available]), [[-29, true, true], [124, true, true], [null, false, false], [91, true, true]]);
+  assert.match(m[3].reason, /name/);
+  assert.match(m[2].reason, /no matching tab/);
 });
 
 async function planWithStub(applyMod, client, pkg, target, opts) {

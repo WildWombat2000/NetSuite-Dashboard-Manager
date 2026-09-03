@@ -16,6 +16,8 @@ using the same backend calls the dashboard UI itself makes when you personalise 
 | **Import** | Import tab | Recreates a package on the current user's dashboard: sets layout, allocates free portlet slots, replays each portlet's setup form, minimises, fixes ordering. Preview and dry-run before anything changes; automatic backup first |
 | **Copy to another tab** | Dashboard tab | Same flow, targeting another center tab of the same user (Home → "Sales", custom tab → custom tab) |
 | **Merge / Replace** | Import | Merge adds on top of what is there; Replace removes existing portlets first (Settings portlet is always kept) |
+| **All-tabs bundle import** | Import | Drop a bundle exported with "Export all tabs": each exported tab is pre-selected only if this account has a matching tab (same id, else same name); unavailable tabs are flagged and can be redirected or left out. Preview plans every selected tab, then one click imports them all in sequence with a backup per target |
+| **Rollback on rejected settings** | Import | If NetSuite rejects a portlet's configuration (missing search, no permission), the portlet is removed again instead of being left as an empty box, and its remaining steps are skipped |
 | **Backups & library** | Saved tab / Library page | Named snapshots stored in the browser (`chrome.storage.local`); restore, download, rename, delete |
 | **Compare** | Compare tab | Diff the live dashboard against a file or a saved snapshot: added/removed/moved portlets and changed settings |
 | **Bulk tools** | Dashboard tab | Minimise all, expand all, remove all (with backup), export every tab as one bundle |
@@ -55,10 +57,21 @@ saved-search access and role restrictions all still apply.
 | Settings, Recent Records, New Release, SMT Links, Bank Rec Summary | Placement only (nothing to configure) |
 
 Cross-account imports work as long as the referenced saved searches / scorecards / scripts exist with
-the **same internal ids** in the target account (true for sandbox refreshes). Otherwise the portlet is
-added and NetSuite's own form validation reports the missing reference; fix the reference and re-run
-the plan for that portlet. SDF export references objects by script id and is the right tool for
-account-to-account moves.
+the **same internal ids** in the target account (true for sandbox refreshes). Otherwise NetSuite's own
+form validation rejects that portlet's settings, the extension removes the half-added portlet again and
+logs the reason; fix the reference and re-run the plan for that portlet. SDF export references objects
+by script id and is the right tool for account-to-account moves.
+
+## Rolling a dashboard set out to a team
+
+1. The template owner opens their Home page and clicks **Export all tabs (bundle)**.
+2. Each recipient opens any dashboard page, **Import → File → Preview plan** with the bundle. The
+   wizard lists every exported tab: ticked when their role has the same tab (matched by id, then by
+   name), flagged "not available here" otherwise. They can redirect an unavailable tab's content to a
+   tab they do have, or leave it out.
+3. **Preview selected** plans every ticked tab against this account (slot capacity, portlet types the
+   tab supports, layout) and unticks tabs where nothing could be added. **Apply selected** backs up
+   each target tab and imports them one after another; each row gets an "open tab" link at the end.
 
 ## Slot capacity
 
